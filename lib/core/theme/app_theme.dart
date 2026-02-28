@@ -2,15 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppColors {
-  // Primary
-  static const Color primary = Color(0xFF2563EB);
-  static const Color primaryLight = Color(0xFF3B82F6);
-  static const Color primaryDark = Color(0xFF1D4ED8);
+  // Primary (Orange)
+  static const Color primary = Color(0xFFD35400); // Dark Orange
+  static const Color primaryLight = Color(0xFFE67E22); // Lighter Orange (hover)
+  static const Color primaryDark = Color(0xFFA04000); // Even darker orange
 
   // Gradients
   static const List<Color> primaryGradient = [
-    Color(0xFF2563EB),
-    Color(0xFF1D4ED8),
+    Color(0xFFE67E22),
+    Color(0xFFD35400),
   ];
   static const List<Color> introGradient = [
     Color(0xFF0F172A),
@@ -18,15 +18,32 @@ class AppColors {
     Color(0xFF0F172A),
   ];
 
-  // Light theme
-  static const Color lightBg = Color(0xFFF3F4F6);
-  static const Color lightSurface = Color(0xFFFFFFFF);
-  static const Color lightSurfaceVariant = Color(0xFFE5E7EB);
-  static const Color lightText = Color(0xFF111827);
-  static const Color lightSubtext = Color(0xFF6B7280);
+  // Light theme (Minimal Fintech)
+  static const Color lightBg = Color(0xFFE9ECEF); // Light grey background
+  static const Color lightSurface = Color(
+    0xFFFFFFFF,
+  ); // Pure white cards/surface
+  static const Color lightSurfaceVariant = Color(
+    0xFFE5E7EB,
+  ); // Subtle variation
+  static const Color lightText = Color(
+    0xFF1F2933,
+  ); // Strong hierarchy primary text
+  static const Color lightSubtext = Color(0xFF6B7280); // Secondary text
 
-  static const Color bgGradientLightTop = Color(0xFFF8FAFF);
-  static const Color bgGradientLightBottom = Color(0xFFF3F6FA);
+  // Subtle drop shadows instead of neomorphic
+  static const Color softShadowColor = Color(
+    0x0C000000,
+  ); // Very light shadow, 5% opacity
+  static const Color neoLightShadow =
+      Colors.transparent; // removing neomorphic effect
+  static const Color neoDarkShadow =
+      Colors.transparent; // removing neomorphic effect
+
+  static const Color bgGradientLightTop = Color(
+    0xFFECEFF1,
+  ); // Very soft gradient
+  static const Color bgGradientLightBottom = Color(0xFFE5E7EB);
 
   // Dark theme
   static const Color darkBg = Color(0xFF0F172A);

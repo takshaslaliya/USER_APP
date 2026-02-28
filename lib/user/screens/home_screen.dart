@@ -40,14 +40,13 @@ class _HomeScreenState extends State<HomeScreen> {
       padding: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-        border: Border(
-          top: BorderSide(
-            color: isDark
-                ? AppColors.darkSurfaceVariant
-                : AppColors.lightSurfaceVariant,
-            width: 1,
+        boxShadow: [
+          BoxShadow(
+            color: isDark ? Colors.black26 : AppColors.softShadowColor,
+            offset: const Offset(0, -4),
+            blurRadius: 10,
           ),
-        ),
+        ],
       ),
       child: SafeArea(
         child: Row(
@@ -115,7 +114,7 @@ class _NavItem extends StatelessWidget {
     final isSelected = currentIndex == index;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final color = isSelected
-        ? AppColors.primary
+        ? Colors.white
         : (isDark ? AppColors.darkSubtext : AppColors.lightSubtext);
 
     return GestureDetector(
@@ -129,9 +128,7 @@ class _NavItem extends StatelessWidget {
           vertical: 8,
         ),
         decoration: BoxDecoration(
-          color: isSelected
-              ? AppColors.primary.withValues(alpha: 0.15)
-              : Colors.transparent,
+          color: isSelected ? AppColors.primary : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
         ),
         child: Row(

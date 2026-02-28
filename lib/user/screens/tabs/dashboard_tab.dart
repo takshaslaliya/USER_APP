@@ -33,31 +33,93 @@ class DashboardTab extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header
-                Row(
+                // Premium Status Bar
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? AppColors.darkSurfaceVariant
+                        : AppColors.lightSurface,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: isDark
+                            ? Colors.black26
+                            : AppColors.softShadowColor,
+                        offset: const Offset(0, 4),
+                        blurRadius: 12,
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.star_border_rounded,
+                        color: AppColors.primary,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'You are on the Basic Version.',
+                          style: TextStyle(
+                            color: subColor,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () {},
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          backgroundColor: AppColors.primary,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        child: const Text(
+                          'Upgrade',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // User Profile Header
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Good Evening 👋',
-                            style: TextStyle(
-                              color: subColor,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            user.name,
-                            style: TextStyle(
-                              color: textColor,
-                              fontSize: 22,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ],
+                    Text(
+                      user.name,
+                      style: TextStyle(
+                        color: textColor,
+                        fontSize: 28,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      user.email,
+                      style: TextStyle(
+                        color: subColor,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ],
@@ -200,9 +262,6 @@ class QuickActionButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textColor = isDark ? AppColors.darkText : AppColors.lightText;
-    final surfaceColor = isDark
-        ? AppColors.darkSurface
-        : AppColors.lightSurface;
 
     return Column(
       children: [
@@ -215,15 +274,17 @@ class QuickActionButton extends StatelessWidget {
               width: 64,
               height: 64,
               decoration: BoxDecoration(
-                color: surfaceColor.withValues(alpha: 0.7),
+                color: AppColors.primary,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: isDark
-                      ? AppColors.darkSurfaceVariant
-                      : AppColors.lightSurfaceVariant,
-                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: isDark ? Colors.black26 : AppColors.softShadowColor,
+                    offset: const Offset(0, 4),
+                    blurRadius: 8,
+                  ),
+                ],
               ),
-              child: Icon(icon, color: AppColors.primary, size: 28),
+              child: Icon(icon, color: Colors.white, size: 28),
             ),
           ),
         ),
@@ -258,21 +319,17 @@ class InsightCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final surfaceColor = isDark
-        ? AppColors.darkSurface
-        : AppColors.lightSurface;
-    final textColor = isDark ? AppColors.darkText : AppColors.lightText;
 
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
       decoration: BoxDecoration(
-        color: surfaceColor,
+        color: AppColors.primary,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
-            blurRadius: 10,
+            color: isDark ? Colors.black26 : AppColors.softShadowColor,
             offset: const Offset(0, 4),
+            blurRadius: 8,
           ),
         ],
       ),
@@ -282,16 +339,16 @@ class InsightCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
+              color: Colors.white.withValues(alpha: 0.2),
               shape: BoxShape.circle,
             ),
-            child: Icon(icon, color: color, size: 16),
+            child: Icon(icon, color: Colors.white, size: 16),
           ),
           const SizedBox(height: 12),
           Text(
             label,
-            style: TextStyle(
-              color: isDark ? AppColors.darkSubtext : AppColors.lightSubtext,
+            style: const TextStyle(
+              color: Colors.white70,
               fontSize: 11,
               fontWeight: FontWeight.w500,
             ),
@@ -299,8 +356,8 @@ class InsightCard extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             '₹${amount.toStringAsFixed(0)}',
-            style: TextStyle(
-              color: textColor,
+            style: const TextStyle(
+              color: Colors.white,
               fontSize: 15,
               fontWeight: FontWeight.w700,
             ),
@@ -335,11 +392,13 @@ class ActivityTile extends StatelessWidget {
       decoration: BoxDecoration(
         color: surfaceColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDark
-              ? AppColors.darkSurfaceVariant
-              : AppColors.lightSurfaceVariant,
-        ),
+        boxShadow: [
+          BoxShadow(
+            color: isDark ? Colors.black26 : AppColors.softShadowColor,
+            offset: const Offset(0, 2),
+            blurRadius: 6,
+          ),
+        ],
       ),
       child: Material(
         color: Colors.transparent,
