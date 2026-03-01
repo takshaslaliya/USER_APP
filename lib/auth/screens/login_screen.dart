@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:splitease_test/core/services/auth_service.dart';
 import 'package:splitease_test/core/theme/app_theme.dart';
 import 'package:splitease_test/shared/widgets/app_button.dart';
 
@@ -12,10 +13,18 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen>
     with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
+  // Sign-in controllers
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   final _otpController = TextEditingController();
+  // Sign-up extra controllers
+  final _signupUsernameController = TextEditingController();
+  final _signupFullNameController = TextEditingController();
+  final _signupEmailController = TextEditingController();
+  final _signupPhoneController = TextEditingController();
+  final _signupPasswordController = TextEditingController();
+
   bool _obscurePassword = true;
   bool _isLoading = false;
   bool _isSignUp = false;
@@ -65,42 +74,116 @@ class _LoginScreenState extends State<LoginScreen>
     _phoneController.dispose();
     _passwordController.dispose();
     _otpController.dispose();
+    _signupUsernameController.dispose();
+    _signupFullNameController.dispose();
+    _signupEmailController.dispose();
+    _signupPhoneController.dispose();
+    _signupPasswordController.dispose();
     super.dispose();
   }
 
   Future<void> _handleLogin() async {
     if (!_formKey.currentState!.validate()) return;
+    setState(() => _isLoading = true);
 
-    // Email login: first press sends OTP, second press verifies
-    if (!_isSignUp && _loginMethod == 'email' && !_otpSent) {
-      setState(() {
-        _isLoading = true;
-      });
-      await Future.delayed(const Duration(milliseconds: 800));
+    // ── SIGN UP ──────────────────────────────────────────────────────────
+    if (_isSignUp) {
+      final result = await AuthService.signup(
+        mobileNumber: _signupPhoneController.text.trim(),
+        email: _signupEmailController.text.trim(),
+        username: _signupUsernameController.text.trim(),
+        fullName: _signupFullNameController.text.trim(),
+        password: _signupPasswordController.text,
+      );
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+
+      if (result.success) {
+        // Navigate to OTP verification screen
+        Navigator.pushNamed(
+          context,
+          '/verify-otp',
+          arguments: _signupEmailController.text.trim(),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result.message),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+      return;
+    }
+
+    // ── EMAIL OTP LOGIN — Step 1: send OTP ───────────────────────────────
+    if (_loginMethod == 'email' && !_otpSent) {
+      final result = await AuthService.requestLoginOtp(
+        email: _emailController.text.trim(),
+      );
       if (!mounted) return;
       setState(() {
         _isLoading = false;
-        _otpSent = true;
+        if (result.success) _otpSent = true;
       });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('OTP sent to ${_emailController.text}! Use 1234.'),
-          backgroundColor: AppColors.primary,
+          content: Text(result.message),
+          backgroundColor: result.success ? AppColors.primary : AppColors.error,
         ),
       );
       return;
     }
 
-    setState(() => _isLoading = true);
-    await Future.delayed(const Duration(milliseconds: 1200));
+    // ── EMAIL OTP LOGIN — Step 2: verify OTP ────────────────────────────
+    if (_loginMethod == 'email' && _otpSent) {
+      final result = await AuthService.verifyLoginOtp(
+        email: _emailController.text.trim(),
+        otp: _otpController.text.trim(),
+      );
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+
+      if (result.success) {
+        final type = result.data?['type'] as String? ?? 'user';
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          type == 'admin' ? '/admin' : '/home',
+          (r) => false,
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result.message),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+      return;
+    }
+
+    // ── MOBILE + PASSWORD LOGIN ──────────────────────────────────────────
+    final result = await AuthService.loginWithPassword(
+      emailOrMobile: _phoneController.text.trim(),
+      password: _passwordController.text,
+    );
     if (!mounted) return;
     setState(() => _isLoading = false);
 
-    final isAdmin = _emailController.text == 'admin@splitease.app';
-    if (isAdmin) {
-      Navigator.pushNamedAndRemoveUntil(context, '/admin', (route) => false);
+    if (result.success) {
+      final type = result.data?['type'] as String? ?? 'user';
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        type == 'admin' ? '/admin' : '/home',
+        (r) => false,
+      );
     } else {
-      Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result.message),
+          backgroundColor: AppColors.error,
+        ),
+      );
     }
   }
 
@@ -373,10 +456,15 @@ class _LoginScreenState extends State<LoginScreen>
                           children: [
                             // ── Sign Up fields ──────────────────────────────
                             if (_isSignUp) ...[
-                              _buildField(
-                                isDark: isDark,
-                                hint: 'Username',
-                                icon: Icons.alternate_email_rounded,
+                              TextFormField(
+                                controller: _signupUsernameController,
+                                decoration: InputDecoration(
+                                  hintText: 'Username',
+                                  prefixIcon: Icon(
+                                    Icons.alternate_email_rounded,
+                                    size: 20,
+                                  ),
+                                ),
                                 validator: (v) {
                                   if (v == null || v.isEmpty) {
                                     return 'Enter a username';
@@ -388,17 +476,88 @@ class _LoginScreenState extends State<LoginScreen>
                                 },
                               ),
                               SizedBox(height: 14),
-                              _buildField(
-                                isDark: isDark,
-                                hint: 'Full Name',
-                                icon: Icons.person_outline_rounded,
-                                validator: (v) =>
-                                    v!.isEmpty ? 'Enter your name' : null,
+                              TextFormField(
+                                controller: _signupFullNameController,
+                                decoration: InputDecoration(
+                                  hintText: 'Full Name',
+                                  prefixIcon: Icon(
+                                    Icons.person_outline_rounded,
+                                    size: 20,
+                                  ),
+                                ),
+                                validator: (v) => (v == null || v.isEmpty)
+                                    ? 'Enter your full name'
+                                    : null,
                               ),
                               SizedBox(height: 14),
-                              _buildEmailField(isDark),
+                              TextFormField(
+                                controller: _signupEmailController,
+                                keyboardType: TextInputType.emailAddress,
+                                decoration: InputDecoration(
+                                  hintText: 'Email address',
+                                  prefixIcon: Icon(
+                                    Icons.mail_outline_rounded,
+                                    size: 20,
+                                  ),
+                                ),
+                                validator: (v) {
+                                  if (v == null || v.isEmpty) {
+                                    return 'Enter your email';
+                                  }
+                                  if (!v.contains('@')) {
+                                    return 'Enter a valid email';
+                                  }
+                                  return null;
+                                },
+                              ),
                               SizedBox(height: 14),
-                              _buildPasswordField(isDark),
+                              TextFormField(
+                                controller: _signupPhoneController,
+                                keyboardType: TextInputType.phone,
+                                decoration: InputDecoration(
+                                  hintText: 'Mobile Number',
+                                  prefixIcon: Icon(
+                                    Icons.phone_outlined,
+                                    size: 20,
+                                  ),
+                                ),
+                                validator: (v) {
+                                  if (v == null || v.isEmpty) {
+                                    return 'Enter mobile number';
+                                  }
+                                  if (v.length < 10) {
+                                    return 'Enter valid 10-digit number';
+                                  }
+                                  return null;
+                                },
+                              ),
+                              SizedBox(height: 14),
+                              TextFormField(
+                                controller: _signupPasswordController,
+                                obscureText: _obscurePassword,
+                                decoration: InputDecoration(
+                                  hintText: 'Password',
+                                  prefixIcon: Icon(
+                                    Icons.lock_outline_rounded,
+                                    size: 20,
+                                  ),
+                                  suffixIcon: IconButton(
+                                    icon: Icon(
+                                      _obscurePassword
+                                          ? Icons.visibility_off_outlined
+                                          : Icons.visibility_outlined,
+                                      size: 20,
+                                    ),
+                                    onPressed: () => setState(
+                                      () =>
+                                          _obscurePassword = !_obscurePassword,
+                                    ),
+                                  ),
+                                ),
+                                validator: (v) => (v == null || v.length < 6)
+                                    ? 'Password must be at least 6 characters'
+                                    : null,
+                              ),
                             ],
 
                             // ── Sign In fields ──────────────────────────────
@@ -649,21 +808,6 @@ class _LoginScreenState extends State<LoginScreen>
       ),
       validator: (v) =>
           v!.length < 4 ? 'Password must be at least 4 characters' : null,
-    );
-  }
-
-  Widget _buildField({
-    required bool isDark,
-    required String hint,
-    required IconData icon,
-    String? Function(String?)? validator,
-  }) {
-    return TextFormField(
-      decoration: InputDecoration(
-        hintText: hint,
-        prefixIcon: Icon(icon, size: 20),
-      ),
-      validator: validator,
     );
   }
 }

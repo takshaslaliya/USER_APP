@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:splitease_test/core/theme/app_theme.dart';
+import 'package:splitease_test/core/services/auth_service.dart';
 import 'package:splitease_test/auth/screens/intro_screen.dart';
 import 'package:splitease_test/auth/screens/login_screen.dart';
 import 'package:splitease_test/auth/screens/reset_password_screen.dart';
+import 'package:splitease_test/auth/screens/verify_otp_screen.dart';
 import 'package:splitease_test/user/screens/home_screen.dart';
 import 'package:splitease_test/admin/screens/admin_dashboard_screen.dart';
 import 'package:splitease_test/admin/screens/admin_users_screen.dart';
@@ -13,17 +15,25 @@ import 'package:splitease_test/user/screens/group_details_screen.dart';
 import 'package:splitease_test/user/screens/share_screen.dart';
 import 'package:splitease_test/core/models/group_model.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final loggedIn = await AuthService.isLoggedIn();
+  final storedUser = await AuthService.getUser();
+  final isAdmin = storedUser?['role'] == 'admin';
+
   runApp(
     ChangeNotifierProvider(
       create: (_) => ThemeProvider(),
-      child: const SplitEaseApp(),
+      child: SplitEaseApp(
+        initialRoute: loggedIn ? (isAdmin ? '/admin' : '/home') : '/',
+      ),
     ),
   );
 }
 
 class SplitEaseApp extends StatelessWidget {
-  const SplitEaseApp({super.key});
+  final String initialRoute;
+  const SplitEaseApp({super.key, this.initialRoute = '/'});
 
   @override
   Widget build(BuildContext context) {
@@ -34,7 +44,7 @@ class SplitEaseApp extends StatelessWidget {
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
       themeMode: themeProvider.isDark ? ThemeMode.dark : ThemeMode.light,
-      initialRoute: '/',
+      initialRoute: initialRoute,
       onGenerateRoute: (settings) {
         Widget page;
         switch (settings.name) {
@@ -43,6 +53,10 @@ class SplitEaseApp extends StatelessWidget {
             break;
           case '/login':
             page = const LoginScreen();
+            break;
+          case '/verify-otp':
+            final email = settings.arguments as String;
+            page = VerifyOtpScreen(email: email);
             break;
           case '/reset-password':
             page = const ResetPasswordScreen();
