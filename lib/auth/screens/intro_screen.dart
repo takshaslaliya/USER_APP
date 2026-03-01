@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:splitease_test/core/theme/app_theme.dart';
 
 class IntroScreen extends StatefulWidget {
@@ -76,7 +77,8 @@ class _IntroScreenState extends State<IntroScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return Consumer<ThemeProvider>(
+      builder: (context, themeProvider, child) => Scaffold(
       backgroundColor: AppColors.darkBg,
       body: Container(
         width: double.infinity,
@@ -133,6 +135,7 @@ class _IntroScreenState extends State<IntroScreen>
             ),
           ),
         ),
+      ),
       ),
     );
   }
