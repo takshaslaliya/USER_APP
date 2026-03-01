@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import 'package:splitease_test/core/models/dummy_data.dart';
 import 'package:splitease_test/core/services/auth_service.dart';
 import 'package:splitease_test/core/theme/app_theme.dart';
-import 'package:splitease_test/shared/widgets/app_button.dart';
 import 'package:splitease_test/user/widgets/whatsapp_link_sheet.dart';
 
 class SettingsTab extends StatefulWidget {
@@ -580,11 +579,41 @@ class _SettingsTabState extends State<SettingsTab> {
               ),
             ),
             SizedBox(height: 32),
-            AppButton(
-              label: 'Logout',
-              icon: Icons.logout_rounded,
-              gradientColors: [AppColors.error],
-              onPressed: _logout,
+            GestureDetector(
+              onTap: _logout,
+              child: Container(
+                width: double.infinity,
+                height: 52,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFFFF6B6B), Color(0xFFEF4444)],
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Color(0xFFEF4444).withValues(alpha: 0.35),
+                      blurRadius: 10,
+                      offset: Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.logout_rounded, color: Colors.white, size: 20),
+                    SizedBox(width: 8),
+                    Text(
+                      'Logout',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ],
         ),
