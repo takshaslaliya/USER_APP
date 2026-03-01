@@ -63,7 +63,12 @@ class _SettingsTabState extends State<SettingsTab> {
         ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppTheme.padding),
+        padding: const EdgeInsets.only(
+          left: AppTheme.padding,
+          right: AppTheme.padding,
+          top: AppTheme.padding,
+          bottom: 100, // Extra padding to clear the floating bottom nav
+        ),
         child: Column(
           children: [
             const SizedBox(height: 12),
