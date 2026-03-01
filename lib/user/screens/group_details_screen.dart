@@ -797,7 +797,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
               SafeArea(
                 bottom: true,
                 child: Container(
-                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
                   decoration: BoxDecoration(
                     color: surfaceColor,
                     border: Border(

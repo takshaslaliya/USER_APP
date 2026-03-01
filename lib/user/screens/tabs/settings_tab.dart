@@ -644,7 +644,10 @@ class _SettingsTabState extends State<SettingsTab> {
                         final a = _achievements[index];
                         final config = _getAchievementConfig(a.type);
                         return Padding(
-                          padding: const EdgeInsets.only(right: 12),
+                          padding: EdgeInsets.only(
+                            left: index == 0 ? 28 : 0,
+                            right: 12,
+                          ),
                           child: Opacity(
                             opacity: a.isUnlocked ? 1.0 : 0.5,
                             child: _BadgeCard(

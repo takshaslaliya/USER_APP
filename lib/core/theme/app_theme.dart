@@ -70,7 +70,7 @@ class AppColors {
 
 class AppTheme {
   static const double borderRadius = 16.0;
-  static const double padding = 20.0;
+  static const double padding = 28.0;
   static const double paddingSmall = 12.0;
 
   static ThemeData light() {

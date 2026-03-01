@@ -153,7 +153,7 @@ class _DashboardTabState extends State<DashboardTab> {
 
                 // ── Balance Card ─────────────────────────────
                 Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 20),
+                  padding: EdgeInsets.symmetric(horizontal: 28),
                   child: Container(
                     width: double.infinity,
                     padding: EdgeInsets.all(24),
@@ -267,7 +267,7 @@ class _DashboardTabState extends State<DashboardTab> {
                 SizedBox(height: 24), // Added spacer to prevent collision
                 // ── Quick Actions ─────────────────────────────
                 Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 20),
+                  padding: EdgeInsets.symmetric(horizontal: 28),
                   child: Column(
                     children: [
                       // Premium Banner Full Width
@@ -359,7 +359,7 @@ class _DashboardTabState extends State<DashboardTab> {
 
                 // ── Search Bar ────────────────────────────────
                 Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 20),
+                  padding: EdgeInsets.symmetric(horizontal: 28),
                   child: Container(
                     decoration: BoxDecoration(
                       color: isDark
@@ -450,7 +450,7 @@ class _DashboardTabState extends State<DashboardTab> {
                 SizedBox(height: 16),
 
                 Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 20),
+                  padding: EdgeInsets.symmetric(horizontal: 28),
                   child: _isLoading && _groups.isEmpty
                       ? Center(
                           child: CircularProgressIndicator(

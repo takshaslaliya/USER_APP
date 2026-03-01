@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:splitease_test/core/theme/app_theme.dart';
 import 'package:splitease_test/core/services/whatsapp_service.dart';
@@ -27,6 +28,7 @@ class _WhatsAppLinkSheetState extends State<WhatsAppLinkSheet>
   Timer? _timer;
   int _timeLeft = 0;
   bool _isExpired = false;
+  Uint8List? _qrBytes;
 
   @override
   void initState() {
@@ -136,6 +138,9 @@ class _WhatsAppLinkSheetState extends State<WhatsAppLinkSheet>
       if (res.success && res.data != null) {
         setState(() {
           _qrBase64 = res.data!['qr_code'];
+          if (_qrBase64 != null) {
+            _qrBytes = base64Decode(_qrBase64!.split(',').last);
+          }
           _statusMessage = res.message;
         });
         _startTimer(60); // 1 minute
@@ -185,8 +190,8 @@ class _WhatsAppLinkSheetState extends State<WhatsAppLinkSheet>
         color: surfaceColor,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(24),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -203,7 +208,7 @@ class _WhatsAppLinkSheetState extends State<WhatsAppLinkSheet>
                 ),
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
             Text(
               'Link WhatsApp',
               style: TextStyle(
@@ -307,6 +312,8 @@ class _WhatsAppLinkSheetState extends State<WhatsAppLinkSheet>
               const SizedBox(height: 12),
               _buildLinkOptions(isDark, subColor),
             ],
+            // Extra space for system nav bar
+            const SizedBox(height: 40),
           ],
         ),
       ),
@@ -330,7 +337,7 @@ class _WhatsAppLinkSheetState extends State<WhatsAppLinkSheet>
         ),
         const SizedBox(height: 20),
         SizedBox(
-          height: 280,
+          height: 420,
           child: TabBarView(
             controller: _tabController,
             children: [
@@ -467,6 +474,7 @@ class _WhatsAppLinkSheetState extends State<WhatsAppLinkSheet>
                           ? _checkStatus
                           : _sendOtp,
                     ),
+                  const SizedBox(height: 24),
                 ],
               ),
               // QR Flow
@@ -520,11 +528,13 @@ class _WhatsAppLinkSheetState extends State<WhatsAppLinkSheet>
                                     color: Colors.white,
                                     borderRadius: BorderRadius.circular(16),
                                   ),
-                                  child: Image.memory(
-                                    base64Decode(_qrBase64!.split(',').last),
-                                    width: 180,
-                                    height: 180,
-                                  ),
+                                  child: _qrBytes != null
+                                      ? Image.memory(
+                                          _qrBytes!,
+                                          width: 180,
+                                          height: 180,
+                                        )
+                                      : const SizedBox(width: 180, height: 180),
                                 ),
                                 const SizedBox(height: 12),
                                 Row(
@@ -568,6 +578,7 @@ class _WhatsAppLinkSheetState extends State<WhatsAppLinkSheet>
                         ? _checkStatus
                         : _getQrCode,
                   ),
+                  const SizedBox(height: 24),
                 ],
               ),
             ],
