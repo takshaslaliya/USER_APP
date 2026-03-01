@@ -83,7 +83,7 @@ class AppButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           child: Center(
             child: isLoading
-                ? const SizedBox(
+                ? SizedBox(
                     width: 22,
                     height: 22,
                     child: CircularProgressIndicator(
@@ -96,11 +96,11 @@ class AppButton extends StatelessWidget {
                     children: [
                       if (icon != null) ...[
                         Icon(icon, color: Colors.white, size: 18),
-                        const SizedBox(width: 8),
+                        SizedBox(width: 8),
                       ],
                       Text(
                         label,
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: Colors.white,
                           fontSize: 15,
                           fontWeight: FontWeight.w600,

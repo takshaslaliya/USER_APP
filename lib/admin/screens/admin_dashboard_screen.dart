@@ -74,7 +74,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       body: Container(
         decoration: BoxDecoration(
           gradient: isDark
-              ? const LinearGradient(
+              ? LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [Color(0xFF18181B), Color(0xFF2F2F33), Color(0xFF18181B)],
@@ -107,7 +107,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       slivers: [
         SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+            padding: EdgeInsets.fromLTRB(20, 20, 20, 0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -119,17 +119,17 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Container(
-                            padding: const EdgeInsets.symmetric(
+                            padding: EdgeInsets.symmetric(
                               horizontal: 10,
                               vertical: 4,
                             ),
                             decoration: BoxDecoration(
-                              gradient: const LinearGradient(
+                              gradient: LinearGradient(
                                 colors: AppColors.adminGradient,
                               ),
                               borderRadius: BorderRadius.circular(20),
                             ),
-                            child: const Text(
+                            child: Text(
                               '⚡ Admin Panel',
                               style: TextStyle(
                                 color: Colors.white,
@@ -138,7 +138,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                               ),
                             ),
                           ),
-                          const SizedBox(height: 6),
+                          SizedBox(height: 6),
                           Text(
                             'Data Analytics',
                             style: TextStyle(
@@ -172,12 +172,12 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 24),
+                SizedBox(height: 24),
 
                 // App Usage Analytics Graph
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.all(20),
+                  padding: EdgeInsets.all(20),
                   decoration: BoxDecoration(
                     color: surfaceColor,
                     borderRadius: BorderRadius.circular(AppTheme.borderRadius),
@@ -192,7 +192,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                           Row(
                             children: [
                               Icon(Icons.auto_graph_rounded, color: AppColors.primary, size: 18),
-                              const SizedBox(width: 8),
+                              SizedBox(width: 8),
                               Text(
                                 '$_selectedChartLabel Analytics',
                                 style: TextStyle(
@@ -213,7 +213,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                             ),
                         ],
                       ),
-                      const SizedBox(height: 20),
+                      SizedBox(height: 20),
                       SizedBox(
                         height: 120,
                         child: CustomPaint(
@@ -224,7 +224,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                           size: Size.infinite,
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      SizedBox(height: 12),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: (_chartData[_selectedChartLabel] ?? DummyData.monthlyData)
@@ -239,7 +239,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 24),
+                SizedBox(height: 24),
 
                 // Stats Grid
                 GridView.count(
@@ -286,13 +286,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                         label: 'WhatsApp Users',
                         value: '${DummyData.whatsappUsersCount}',
                         icon: Icons.message_outlined,
-                        iconColor: const Color(0xFF25D366),
-                        iconBgColor: const Color(0xFF25D366).withValues(alpha: 0.1),
+                        iconColor: Color(0xFF25D366),
+                        iconBgColor: Color(0xFF25D366).withValues(alpha: 0.1),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 100),
+                SizedBox(height: 100),
               ],
             ),
           ),
@@ -315,7 +315,7 @@ class _AdminWhatsAppList extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.all(20),
+          padding: EdgeInsets.all(20),
           child: Text(
             'WhatsApp Connections',
             style: TextStyle(
@@ -327,7 +327,7 @@ class _AdminWhatsAppList extends StatelessWidget {
         ),
         Expanded(
           child: ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
+            padding: EdgeInsets.symmetric(horizontal: 20),
             itemCount: whatsappUsers.length,
             itemBuilder: (context, index) {
               final dynamic user = whatsappUsers[index];
@@ -336,8 +336,8 @@ class _AdminWhatsAppList extends StatelessWidget {
               final String initials = user.avatarInitials?.toString() ?? '??';
 
               return Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                padding: const EdgeInsets.all(16),
+                margin: EdgeInsets.only(bottom: 12),
+                padding: EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: surfaceColor,
                   borderRadius: BorderRadius.circular(16),
@@ -346,13 +346,13 @@ class _AdminWhatsAppList extends StatelessWidget {
                 child: Row(
                   children: [
                     CircleAvatar(
-                      backgroundColor: const Color(0xFF25D366).withValues(alpha: 0.1),
+                      backgroundColor: Color(0xFF25D366).withValues(alpha: 0.1),
                       child: Text(
                         initials,
-                        style: const TextStyle(color: Color(0xFF25D366), fontWeight: FontWeight.bold),
+                        style: TextStyle(color: Color(0xFF25D366), fontWeight: FontWeight.bold),
                       ),
                     ),
-                    const SizedBox(width: 16),
+                    SizedBox(width: 16),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -361,7 +361,7 @@ class _AdminWhatsAppList extends StatelessWidget {
                             name,
                             style: TextStyle(color: textColor, fontWeight: FontWeight.w600, fontSize: 16),
                           ),
-                          const SizedBox(height: 4),
+                          SizedBox(height: 4),
                           Text(
                             phone,
                             style: TextStyle(color: textColor.withValues(alpha: 0.6), fontSize: 13),
@@ -370,12 +370,12 @@ class _AdminWhatsAppList extends StatelessWidget {
                       ),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF25D366).withValues(alpha: 0.1),
+                        color: Color(0xFF25D366).withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(20),
                       ),
-                      child: const Text(
+                      child: Text(
                         'CONNECTED',
                         style: TextStyle(color: Color(0xFF25D366), fontSize: 10, fontWeight: FontWeight.bold),
                       ),
@@ -429,29 +429,29 @@ class _AdminAlertsScreenState extends State<_AdminAlertsScreen> {
     final accentColor = AppColors.adminAccent;
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(colors: AppColors.primaryGradient),
+              gradient: LinearGradient(colors: AppColors.primaryGradient),
               borderRadius: BorderRadius.circular(20),
             ),
-            child: const Text(
+            child: Text(
               '⚡ Notifications',
               style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600),
             ),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           Text(
             'Compose Message',
             style: TextStyle(color: textColor, fontSize: 24, fontWeight: FontWeight.bold),
           ),
-          const SizedBox(height: 24),
+          SizedBox(height: 24),
           Container(
-            padding: const EdgeInsets.all(24),
+            padding: EdgeInsets.all(24),
             decoration: BoxDecoration(
               color: surfaceColor,
               borderRadius: BorderRadius.circular(28),
@@ -473,7 +473,7 @@ class _AdminAlertsScreenState extends State<_AdminAlertsScreen> {
                     _tagButton('{mobile}', () => _addTag('{mobile}')),
                   ],
                 ),
-                const SizedBox(height: 20),
+                SizedBox(height: 20),
                 Container(
                   height: 160,
                   decoration: BoxDecoration(
@@ -508,12 +508,12 @@ class _AdminAlertsScreenState extends State<_AdminAlertsScreen> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 24),
+                SizedBox(height: 24),
                 Container(
                   width: double.infinity,
                   height: 56,
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(colors: AppColors.adminGradient),
+                    gradient: LinearGradient(colors: AppColors.adminGradient),
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
@@ -542,7 +542,7 @@ class _AdminAlertsScreenState extends State<_AdminAlertsScreen> {
                       elevation: 0,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     ),
-                    child: const Row(
+                    child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(Icons.send_rounded, size: 18),
@@ -555,7 +555,7 @@ class _AdminAlertsScreenState extends State<_AdminAlertsScreen> {
               ],
             ),
           ),
-          const SizedBox(height: 100),
+          SizedBox(height: 100),
         ],
       ),
     );
@@ -563,14 +563,14 @@ class _AdminAlertsScreenState extends State<_AdminAlertsScreen> {
 
   Widget _tagButton(String label, VoidCallback onTap) {
     return Container(
-      margin: const EdgeInsets.only(right: 10),
+      margin: EdgeInsets.only(right: 10),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(12),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: BoxDecoration(
               color: AppColors.adminAccent.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
@@ -578,7 +578,7 @@ class _AdminAlertsScreenState extends State<_AdminAlertsScreen> {
             ),
             child: Text(
               label,
-              style: const TextStyle(color: AppColors.adminAccent, fontWeight: FontWeight.w600, fontSize: 13),
+              style: TextStyle(color: AppColors.adminAccent, fontWeight: FontWeight.w600, fontSize: 13),
             ),
           ),
         ),
@@ -607,7 +607,7 @@ class _AdminSettingsScreen extends StatelessWidget {
     ];
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -619,13 +619,13 @@ class _AdminSettingsScreen extends StatelessWidget {
                 style: TextStyle(color: textColor, fontSize: 24, fontWeight: FontWeight.bold),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF22C55E).withValues(alpha: 0.1),
+                  color: Color(0xFF22C55E).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: const Color(0xFF22C55E).withValues(alpha: 0.2)),
+                  border: Border.all(color: Color(0xFF22C55E).withValues(alpha: 0.2)),
                 ),
-                child: const Row(
+                child: Row(
                   children: [
                     Icon(Icons.check_circle_rounded, color: Color(0xFF22C55E), size: 14),
                     SizedBox(width: 6),
@@ -638,12 +638,12 @@ class _AdminSettingsScreen extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 24),
+          SizedBox(height: 24),
           Text(
             'API HEALTH MONITOR',
             style: TextStyle(color: textColor.withValues(alpha: 0.5), fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.2),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
           ListView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -651,8 +651,8 @@ class _AdminSettingsScreen extends StatelessWidget {
             itemBuilder: (context, index) {
               final api = apis[index];
               return Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                padding: const EdgeInsets.all(16),
+                margin: EdgeInsets.only(bottom: 12),
+                padding: EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: surfaceColor,
                   borderRadius: BorderRadius.circular(16),
@@ -661,14 +661,14 @@ class _AdminSettingsScreen extends StatelessWidget {
                 child: Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(10),
+                      padding: EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: (api['icon'] as IconData == Icons.message_rounded ? const Color(0xFF25D366) : AppColors.adminAccent).withValues(alpha: 0.1),
+                        color: (api['icon'] as IconData == Icons.message_rounded ? Color(0xFF25D366) : AppColors.adminAccent).withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: Icon(api['icon'] as IconData, size: 20, color: api['icon'] as IconData == Icons.message_rounded ? const Color(0xFF25D366) : AppColors.adminAccent),
+                      child: Icon(api['icon'] as IconData, size: 20, color: api['icon'] as IconData == Icons.message_rounded ? Color(0xFF25D366) : AppColors.adminAccent),
                     ),
-                    const SizedBox(width: 16),
+                    SizedBox(width: 16),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -677,7 +677,7 @@ class _AdminSettingsScreen extends StatelessWidget {
                             api['name'] as String,
                             style: TextStyle(color: textColor, fontWeight: FontWeight.w600, fontSize: 15),
                           ),
-                          const SizedBox(height: 4),
+                          SizedBox(height: 4),
                           Text(
                             'Latency: ${api['latency']}',
                             style: TextStyle(color: textColor.withValues(alpha: 0.5), fontSize: 12),
@@ -690,14 +690,14 @@ class _AdminSettingsScreen extends StatelessWidget {
                       children: [
                         Text(
                           api['status'] as String,
-                          style: const TextStyle(color: Color(0xFF22C55E), fontSize: 13, fontWeight: FontWeight.bold),
+                          style: TextStyle(color: Color(0xFF22C55E), fontSize: 13, fontWeight: FontWeight.bold),
                         ),
-                        const SizedBox(height: 4),
+                        SizedBox(height: 4),
                         Container(
                           width: 40,
                           height: 4,
                           decoration: BoxDecoration(
-                            color: const Color(0xFF22C55E).withValues(alpha: 0.2),
+                            color: Color(0xFF22C55E).withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(2),
                           ),
                           child: Align(
@@ -706,7 +706,7 @@ class _AdminSettingsScreen extends StatelessWidget {
                               width: 32,
                               height: 4,
                               decoration: BoxDecoration(
-                                color: const Color(0xFF22C55E),
+                                color: Color(0xFF22C55E),
                                 borderRadius: BorderRadius.circular(2),
                               ),
                             ),
@@ -719,10 +719,10 @@ class _AdminSettingsScreen extends StatelessWidget {
               );
             },
           ),
-          const SizedBox(height: 30),
+          SizedBox(height: 30),
           // Additional Settings placeholder
           Container(
-            padding: const EdgeInsets.all(20),
+            padding: EdgeInsets.all(20),
             decoration: BoxDecoration(
               color: surfaceColor,
               borderRadius: BorderRadius.circular(24),
@@ -735,8 +735,8 @@ class _AdminSettingsScreen extends StatelessWidget {
             ),
             child: Row(
               children: [
-                const Icon(Icons.info_outline_rounded, color: AppColors.adminAccent),
-                const SizedBox(width: 16),
+                Icon(Icons.info_outline_rounded, color: AppColors.adminAccent),
+                SizedBox(width: 16),
                 Expanded(
                   child: Text(
                     'More administrative controls and configuration options will be available here soon.',
@@ -746,7 +746,7 @@ class _AdminSettingsScreen extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(height: 100),
+          SizedBox(height: 100),
         ],
       ),
     );
@@ -806,10 +806,10 @@ class _DynamicBottomNavState extends State<_DynamicBottomNav> with SingleTickerP
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final accentColor = AppColors.adminAccent;
-    final barColor = isDark ? const Color(0xFF1E293B) : const Color(0xFF111827);
+    final barColor = isDark ? Color(0xFF1E293B) : Color(0xFF111827);
 
     return Container(
-      margin: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+      margin: EdgeInsets.fromLTRB(20, 0, 20, 20),
       height: 70,
       child: LayoutBuilder(
         builder: (context, constraints) {
@@ -1037,30 +1037,30 @@ class _AdminUsersListState extends State<_AdminUsersList> {
     }
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(colors: AppColors.adminGradient),
+              gradient: LinearGradient(colors: AppColors.adminGradient),
               borderRadius: BorderRadius.circular(20),
             ),
-            child: const Text(
+            child: Text(
               '⚡ App Users',
               style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600),
             ),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           Text(
             'User Management',
             style: TextStyle(color: textColor, fontSize: 24, fontWeight: FontWeight.bold),
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
           // Search Bar
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: EdgeInsets.symmetric(horizontal: 16),
             decoration: BoxDecoration(
               color: surfaceColor,
               borderRadius: BorderRadius.circular(16),
@@ -1079,17 +1079,17 @@ class _AdminUsersListState extends State<_AdminUsersList> {
               ),
             ),
           ),
-          const SizedBox(height: 24),
+          SizedBox(height: 24),
           // User List
           ListView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: filteredUsers.length,
             itemBuilder: (context, index) {
-              if (index >= filteredUsers.length) return const SizedBox();
+              if (index >= filteredUsers.length) return SizedBox();
               
               final dynamic user = filteredUsers[index];
-              if (user == null) return const SizedBox();
+              if (user == null) return SizedBox();
 
               String name = 'User';
               String email = 'No Email';
@@ -1106,7 +1106,7 @@ class _AdminUsersListState extends State<_AdminUsersList> {
               } catch (_) {}
 
               return Container(
-                margin: const EdgeInsets.only(bottom: 12),
+                margin: EdgeInsets.only(bottom: 12),
                 decoration: BoxDecoration(
                   color: surfaceColor,
                   borderRadius: BorderRadius.circular(20),
@@ -1120,7 +1120,7 @@ class _AdminUsersListState extends State<_AdminUsersList> {
                   ],
                 ),
                 child: ListTile(
-                  contentPadding: const EdgeInsets.all(12),
+                  contentPadding: EdgeInsets.all(12),
                   onTap: () => _showEditUserSheet(context, user),
                   leading: Container(
                     width: 48,
@@ -1136,7 +1136,7 @@ class _AdminUsersListState extends State<_AdminUsersList> {
                     child: Center(
                       child: Text(
                         initials,
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                       ),
                     ),
                   ),
@@ -1166,7 +1166,7 @@ class _AdminUsersListState extends State<_AdminUsersList> {
               );
             },
           ),
-          const SizedBox(height: 100),
+          SizedBox(height: 100),
         ],
       ),
     );
@@ -1203,25 +1203,25 @@ class _AdminUsersListState extends State<_AdminUsersList> {
                 ),
               ),
             ),
-            const SizedBox(height: 24),
+            SizedBox(height: 24),
             Text(
               'Edit Profile',
               style: TextStyle(color: textColor, fontSize: 20, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 20),
+            SizedBox(height: 20),
             _buildEditField('Full Name', (user as dynamic).name?.toString() ?? '', Icons.person_outline, isDark),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             _buildEditField('Email Address', (user as dynamic).email?.toString() ?? '', Icons.email_outlined, isDark),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             _buildEditField('Phone Number', (user as dynamic).phoneNumber?.toString() ?? '+91 00000 00000', Icons.phone_outlined, isDark),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             _buildEditField('Password', (user as dynamic).password?.toString() ?? '', Icons.lock_outline_rounded, isDark, isPassword: true),
-            const SizedBox(height: 24),
+            SizedBox(height: 24),
             Container(
               width: double.infinity,
               height: 54,
               decoration: BoxDecoration(
-                gradient: const LinearGradient(colors: AppColors.adminGradient),
+                gradient: LinearGradient(colors: AppColors.adminGradient),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: ElevatedButton(
@@ -1241,7 +1241,7 @@ class _AdminUsersListState extends State<_AdminUsersList> {
                   shadowColor: Colors.transparent,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 ),
-                child: const Text('Save Changes', style: TextStyle(fontWeight: FontWeight.bold)),
+                child: Text('Save Changes', style: TextStyle(fontWeight: FontWeight.bold)),
               ),
             ),
           ],
@@ -1258,9 +1258,9 @@ class _AdminUsersListState extends State<_AdminUsersList> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label, style: TextStyle(color: subColor, fontSize: 12, fontWeight: FontWeight.w600)),
-        const SizedBox(height: 8),
+        SizedBox(height: 8),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
           decoration: BoxDecoration(
             color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03),
             borderRadius: BorderRadius.circular(12),

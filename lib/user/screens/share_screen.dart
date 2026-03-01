@@ -27,7 +27,7 @@ class ShareScreen extends StatelessWidget {
         leading: GestureDetector(
           onTap: () => Navigator.pop(context),
           child: Container(
-            margin: const EdgeInsets.all(8),
+            margin: EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: surfaceColor,
               borderRadius: BorderRadius.circular(10),
@@ -45,10 +45,10 @@ class ShareScreen extends StatelessWidget {
         ),
       ),
       body: Padding(
-        padding: const EdgeInsets.all(AppTheme.padding),
+        padding: EdgeInsets.all(AppTheme.padding),
         child: Column(
           children: [
-            const SizedBox(height: 20),
+            SizedBox(height: 20),
             Center(
               child: Text(
                 'Payment QR Code',
@@ -59,16 +59,16 @@ class ShareScreen extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 8),
             Center(
               child: Text(
                 'Scan to pay dummy amount',
                 style: TextStyle(color: subColor, fontSize: 14),
               ),
             ),
-            const SizedBox(height: 32),
+            SizedBox(height: 32),
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(24),
@@ -95,7 +95,7 @@ class ShareScreen extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(height: 48),
+            SizedBox(height: 48),
             AppButton(
               label: 'Share via WhatsApp',
               icon: Icons.chat_bubble_outline_rounded,
@@ -103,14 +103,14 @@ class ShareScreen extends StatelessWidget {
               onPressed: () {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: const Text('Opening WhatsApp...'),
+                    content: Text('Opening WhatsApp...'),
                     backgroundColor: AppColors.primary,
                     behavior: SnackBarBehavior.floating,
                   ),
                 );
               },
             ),
-            const SizedBox(height: 20),
+            SizedBox(height: 20),
             Text(
               'Links can only be sent through WhatsApp to maintain security and traceability.',
               textAlign: TextAlign.center,

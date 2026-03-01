@@ -90,7 +90,7 @@ class _IntroScreenState extends State<IntroScreen>
         ),
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32),
+            padding: EdgeInsets.symmetric(horizontal: 32),
             child: Column(
               children: [
                 const Spacer(flex: 2),
@@ -102,7 +102,7 @@ class _IntroScreenState extends State<IntroScreen>
                     child: _buildLogo(),
                   ),
                 ),
-                const SizedBox(height: 40),
+                SizedBox(height: 40),
                 // Tagline
                 FadeTransition(
                   opacity: _textFade,
@@ -117,18 +117,18 @@ class _IntroScreenState extends State<IntroScreen>
                   opacity: _buttonFade,
                   child: _buildGetStartedButton(context),
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: 16),
                 FadeTransition(
                   opacity: _buttonFade,
                   child: TextButton(
                     onPressed: () => Navigator.pushNamed(context, '/login'),
-                    child: const Text(
+                    child: Text(
                       'Already have an account? Sign in',
                       style: TextStyle(color: Colors.white54, fontSize: 13),
                     ),
                   ),
                 ),
-                const SizedBox(height: 32),
+                SizedBox(height: 32),
               ],
             ),
           ),
@@ -144,12 +144,11 @@ class _IntroScreenState extends State<IntroScreen>
           width: 90,
           height: 90,
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: AppColors.primaryGradient,
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
             borderRadius: BorderRadius.circular(24),
+            image: const DecorationImage(
+              image: AssetImage('assets/images/app_logo.png'),
+              fit: BoxFit.cover,
+            ),
             boxShadow: [
               BoxShadow(
                 color: AppColors.primary.withValues(alpha: 0.4),
@@ -159,14 +158,9 @@ class _IntroScreenState extends State<IntroScreen>
               ),
             ],
           ),
-          child: const Icon(
-            Icons.currency_rupee_rounded,
-            color: Colors.white,
-            size: 46,
-          ),
         ),
-        const SizedBox(height: 20),
-        const Text(
+        SizedBox(height: 20),
+        Text(
           'SplitEase',
           style: TextStyle(
             color: Colors.white,
@@ -190,8 +184,8 @@ class _IntroScreenState extends State<IntroScreen>
             borderRadius: BorderRadius.circular(1),
           ),
         ),
-        const SizedBox(height: 20),
-        const Text(
+        SizedBox(height: 20),
+        Text(
           'Split Smart.\nPay Easy.',
           textAlign: TextAlign.center,
           style: TextStyle(
@@ -202,8 +196,8 @@ class _IntroScreenState extends State<IntroScreen>
             letterSpacing: -0.3,
           ),
         ),
-        const SizedBox(height: 12),
-        const Text(
+        SizedBox(height: 12),
+        Text(
           'Share expenses effortlessly with\nfriends, family, and roommates.',
           textAlign: TextAlign.center,
           style: TextStyle(color: Colors.white54, fontSize: 14, height: 1.6),
@@ -220,7 +214,7 @@ class _IntroScreenState extends State<IntroScreen>
         width: double.infinity,
         height: 54,
         decoration: BoxDecoration(
-          gradient: const LinearGradient(colors: AppColors.primaryGradient),
+          gradient: LinearGradient(colors: AppColors.primaryGradient),
           borderRadius: BorderRadius.circular(14),
           boxShadow: [
             BoxShadow(
@@ -230,7 +224,7 @@ class _IntroScreenState extends State<IntroScreen>
             ),
           ],
         ),
-        child: const Row(
+        child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(

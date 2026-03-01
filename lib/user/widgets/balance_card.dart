@@ -18,12 +18,12 @@ class BalanceCard extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     // Force everything to be explicit white when card is solid orange
-    const Color cardTextColor = Colors.white;
-    const Color cardSubColor = Colors.white70;
+    Color cardTextColor = Colors.white;
+    Color cardSubColor = Colors.white70;
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: AppColors.primary,
         borderRadius: BorderRadius.circular(AppTheme.borderRadius),
@@ -47,7 +47,7 @@ class BalanceCard extends StatelessWidget {
               fontWeight: FontWeight.w500,
             ),
           ),
-          const SizedBox(height: 6),
+          SizedBox(height: 6),
           Text(
             '₹${_format(totalBalance)}',
             style: TextStyle(
@@ -57,7 +57,7 @@ class BalanceCard extends StatelessWidget {
               letterSpacing: -0.5,
             ),
           ),
-          const SizedBox(height: 24),
+          SizedBox(height: 24),
           Row(
             children: [
               Expanded(
@@ -83,9 +83,9 @@ class BalanceCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(12),
@@ -100,12 +100,12 @@ class BalanceCard extends StatelessWidget {
                   color: cardTextColor,
                   size: 16,
                 ),
-                const SizedBox(width: 8),
+                SizedBox(width: 8),
                 Text(
                   (youGet - youOwe) >= 0
                       ? 'You are in credit by ₹${_format(youGet - youOwe)}'
                       : 'You owe overall ₹${_format(youOwe - youGet)}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: cardTextColor,
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -133,7 +133,7 @@ class BalanceCard extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(icon, color: color, size: 16),
-            const SizedBox(width: 4),
+            SizedBox(width: 4),
             Text(
               label,
               style: TextStyle(
@@ -144,7 +144,7 @@ class BalanceCard extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 6),
+        SizedBox(height: 6),
         Text(
           '₹${_format(amount)}',
           style: TextStyle(

@@ -114,16 +114,13 @@ class _LoginScreenState extends State<LoginScreen>
                       fontSize: 14,
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  SizedBox(height: 16),
                   if (step == 'email')
                     TextFormField(
                       controller: emailCtrl,
                       decoration: InputDecoration(
                         hintText: 'Email address',
-                        prefixIcon: const Icon(
-                          Icons.mail_outline_rounded,
-                          size: 20,
-                        ),
+                        prefixIcon: Icon(Icons.mail_outline_rounded, size: 20),
                         filled: true,
                         fillColor: isDark
                             ? AppColors.darkBg
@@ -141,10 +138,7 @@ class _LoginScreenState extends State<LoginScreen>
                       maxLength: 4,
                       decoration: InputDecoration(
                         hintText: 'Enter 4-digit OTP',
-                        prefixIcon: const Icon(
-                          Icons.lock_outline_rounded,
-                          size: 20,
-                        ),
+                        prefixIcon: Icon(Icons.lock_outline_rounded, size: 20),
                         filled: true,
                         fillColor: isDark
                             ? AppColors.darkBg
@@ -157,8 +151,8 @@ class _LoginScreenState extends State<LoginScreen>
                     ),
                 ],
               ),
-              contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
-              actionsPadding: const EdgeInsets.all(16),
+              contentPadding: EdgeInsets.fromLTRB(24, 16, 24, 0),
+              actionsPadding: EdgeInsets.all(16),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
@@ -180,7 +174,7 @@ class _LoginScreenState extends State<LoginScreen>
                       if (emailCtrl.text.isEmpty ||
                           !emailCtrl.text.contains('@')) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
+                          SnackBar(
                             content: Text('Enter a valid email'),
                             backgroundColor: AppColors.error,
                           ),
@@ -189,7 +183,7 @@ class _LoginScreenState extends State<LoginScreen>
                       }
                       setStateDialog(() => step = 'otp');
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
+                        SnackBar(
                           content: Text('OTP sent to email! Check your inbox.'),
                           backgroundColor: AppColors.primary,
                         ),
@@ -200,7 +194,7 @@ class _LoginScreenState extends State<LoginScreen>
                         Navigator.pushNamed(context, '/reset-password');
                       } else {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
+                          SnackBar(
                             content: Text('Invalid OTP. Please try 1234.'),
                             backgroundColor: AppColors.error,
                           ),
@@ -230,13 +224,13 @@ class _LoginScreenState extends State<LoginScreen>
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: isDark
-                ? [const Color(0xFF0F172A), const Color(0xFF1E293B)]
-                : [const Color(0xFFEFF6FF), const Color(0xFFF3F4F6)],
+                ? [Color(0xFF0F172A), Color(0xFF1E293B)]
+                : [Color(0xFFEFF6FF), Color(0xFFF3F4F6)],
           ),
         ),
         child: SafeArea(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(AppTheme.padding),
+            padding: EdgeInsets.all(AppTheme.padding),
             child: FadeTransition(
               opacity: _fadeAnim,
               child: SlideTransition(
@@ -244,7 +238,7 @@ class _LoginScreenState extends State<LoginScreen>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const SizedBox(height: 20),
+                    SizedBox(height: 20),
                     // Back
                     GestureDetector(
                       onTap: () => Navigator.pop(context),
@@ -266,7 +260,7 @@ class _LoginScreenState extends State<LoginScreen>
                         ),
                       ),
                     ),
-                    const SizedBox(height: 32),
+                    SizedBox(height: 32),
                     // Header
                     Row(
                       children: [
@@ -274,18 +268,18 @@ class _LoginScreenState extends State<LoginScreen>
                           width: 40,
                           height: 40,
                           decoration: BoxDecoration(
-                            gradient: const LinearGradient(
+                            gradient: LinearGradient(
                               colors: AppColors.primaryGradient,
                             ),
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Icons.currency_rupee_rounded,
                             color: Colors.white,
                             size: 22,
                           ),
                         ),
-                        const SizedBox(width: 12),
+                        SizedBox(width: 12),
                         Text(
                           'SplitEase',
                           style: TextStyle(
@@ -298,7 +292,7 @@ class _LoginScreenState extends State<LoginScreen>
                         ),
                       ],
                     ),
-                    const SizedBox(height: 32),
+                    SizedBox(height: 32),
                     Text(
                       _isSignUp ? 'Create Account' : 'Welcome Back',
                       style: TextStyle(
@@ -310,7 +304,7 @@ class _LoginScreenState extends State<LoginScreen>
                         letterSpacing: -0.5,
                       ),
                     ),
-                    const SizedBox(height: 6),
+                    SizedBox(height: 6),
                     Text(
                       _isSignUp
                           ? 'Sign up to start splitting expenses'
@@ -322,10 +316,10 @@ class _LoginScreenState extends State<LoginScreen>
                         fontSize: 14,
                       ),
                     ),
-                    const SizedBox(height: 24),
+                    SizedBox(height: 24),
                     // Form
                     Container(
-                      padding: const EdgeInsets.all(24),
+                      padding: EdgeInsets.all(24),
                       decoration: BoxDecoration(
                         color: isDark
                             ? AppColors.darkSurface
@@ -350,15 +344,30 @@ class _LoginScreenState extends State<LoginScreen>
                             if (_isSignUp) ...[
                               _buildField(
                                 isDark: isDark,
+                                hint: 'Username',
+                                icon: Icons.alternate_email_rounded,
+                                validator: (v) {
+                                  if (v == null || v.isEmpty) {
+                                    return 'Enter a username';
+                                  }
+                                  if (v.contains(' ')) {
+                                    return 'No spaces allowed';
+                                  }
+                                  return null;
+                                },
+                              ),
+                              SizedBox(height: 14),
+                              _buildField(
+                                isDark: isDark,
                                 hint: 'Full Name',
                                 icon: Icons.person_outline_rounded,
                                 validator: (v) =>
                                     v!.isEmpty ? 'Enter your name' : null,
                               ),
-                              const SizedBox(height: 14),
+                              SizedBox(height: 14),
                             ],
                             _buildEmailField(isDark),
-                            const SizedBox(height: 14),
+                            SizedBox(height: 14),
                             _buildPasswordField(isDark),
                             if (!_isSignUp) ...[
                               Align(
@@ -366,7 +375,7 @@ class _LoginScreenState extends State<LoginScreen>
                                 child: TextButton(
                                   onPressed: _showForgotPasswordDialog,
                                   style: TextButton.styleFrom(
-                                    padding: const EdgeInsets.only(
+                                    padding: EdgeInsets.only(
                                       top: 12,
                                       bottom: 4,
                                     ),
@@ -374,7 +383,7 @@ class _LoginScreenState extends State<LoginScreen>
                                     tapTargetSize:
                                         MaterialTapTargetSize.shrinkWrap,
                                   ),
-                                  child: const Text(
+                                  child: Text(
                                     'Forgot Password?',
                                     style: TextStyle(
                                       color: AppColors.primary,
@@ -385,7 +394,7 @@ class _LoginScreenState extends State<LoginScreen>
                                 ),
                               ),
                             ],
-                            const SizedBox(height: 24),
+                            SizedBox(height: 24),
                             AppButton(
                               label: _isSignUp ? 'Create Account' : 'Sign In',
                               onPressed: _handleLogin,
@@ -395,7 +404,7 @@ class _LoginScreenState extends State<LoginScreen>
                         ),
                       ),
                     ),
-                    const SizedBox(height: 20),
+                    SizedBox(height: 20),
                     Center(
                       child: TextButton(
                         onPressed: () => setState(() => _isSignUp = !_isSignUp),
@@ -413,7 +422,7 @@ class _LoginScreenState extends State<LoginScreen>
                             children: [
                               TextSpan(
                                 text: _isSignUp ? 'Sign In' : 'Create Account',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   color: AppColors.primary,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -455,7 +464,7 @@ class _LoginScreenState extends State<LoginScreen>
       obscureText: _obscurePassword,
       decoration: InputDecoration(
         hintText: 'Password',
-        prefixIcon: const Icon(Icons.lock_outline_rounded, size: 20),
+        prefixIcon: Icon(Icons.lock_outline_rounded, size: 20),
         suffixIcon: IconButton(
           icon: Icon(
             _obscurePassword

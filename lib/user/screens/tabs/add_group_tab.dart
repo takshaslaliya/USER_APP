@@ -87,7 +87,7 @@ class _AddGroupTabState extends State<AddGroupTab> {
         elevation: 0,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppTheme.padding),
+        padding: EdgeInsets.all(AppTheme.padding),
         child: Form(
           key: _formKey,
           child: Column(
@@ -101,9 +101,9 @@ class _AddGroupTabState extends State<AddGroupTab> {
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               Container(
-                padding: const EdgeInsets.all(16),
+                padding: EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: surfaceColor,
                   borderRadius: BorderRadius.circular(AppTheme.borderRadius),
@@ -123,7 +123,7 @@ class _AddGroupTabState extends State<AddGroupTab> {
                 ),
               ),
 
-              const SizedBox(height: 48),
+              SizedBox(height: 48),
 
               AppButton(label: 'Create Group', onPressed: _createGroup),
             ],

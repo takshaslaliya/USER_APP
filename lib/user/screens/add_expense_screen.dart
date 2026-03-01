@@ -60,7 +60,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     // Amount validation
     if (_selectedParticipants.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text('Select at least one participant'),
           backgroundColor: AppColors.error,
         ),
@@ -78,7 +78,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       }
       if (customSum != totalAmount) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text(
               'Custom amounts must exactly match the total expense.',
             ),
@@ -94,7 +94,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       }
       if ((pctSum - 100).abs() > 0.1) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text('Percentages must total 100%.'),
             backgroundColor: AppColors.error,
           ),
@@ -131,7 +131,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
+      SnackBar(
         content: Text('Expense added successfully!'),
         backgroundColor: AppColors.primary,
       ),
@@ -156,7 +156,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
         leading: GestureDetector(
           onTap: () => Navigator.pop(context),
           child: Container(
-            margin: const EdgeInsets.all(8),
+            margin: EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: surfaceColor,
               borderRadius: BorderRadius.circular(10),
@@ -174,16 +174,16 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
         ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppTheme.padding),
+        padding: EdgeInsets.all(AppTheme.padding),
         child: Form(
           key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _sectionHeader('Expense Details', textColor),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               Container(
-                padding: const EdgeInsets.all(16),
+                padding: EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: surfaceColor,
                   borderRadius: BorderRadius.circular(AppTheme.borderRadius),
@@ -230,10 +230,10 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                   ],
                 ),
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: 24),
               // Split type
               _sectionHeader('Split Options', textColor),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               Container(
                 decoration: BoxDecoration(
                   color: surfaceColor,
@@ -252,8 +252,8 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                         onTap: () => setState(() => _splitType = type),
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 200),
-                          margin: const EdgeInsets.all(4),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          margin: EdgeInsets.all(4),
+                          padding: EdgeInsets.symmetric(vertical: 12),
                           decoration: BoxDecoration(
                             color: selected
                                 ? AppColors.primary
@@ -276,7 +276,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                   }).toList(),
                 ),
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: 24),
 
               Row(
                 children: [
@@ -288,7 +288,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
@@ -338,7 +338,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
 
               if (_splitType == 'Custom' &&
                   _selectedParticipants.isNotEmpty) ...[
-                const SizedBox(height: 24),
+                SizedBox(height: 24),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -359,10 +359,10 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 ..._selectedParticipants.map(
                   (name) => Padding(
-                    padding: const EdgeInsets.only(bottom: 8.0),
+                    padding: EdgeInsets.only(bottom: 8.0),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -394,11 +394,11 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
 
               if (_splitType == 'Percentage' &&
                   _selectedParticipants.isNotEmpty) ...[
-                const SizedBox(height: 24),
+                SizedBox(height: 24),
                 // Basic percentage slider implementation
                 ..._selectedParticipants.map((name) {
                   return Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
+                    padding: EdgeInsets.only(bottom: 12),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -435,9 +435,9 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                 }),
               ],
 
-              const SizedBox(height: 40),
+              SizedBox(height: 40),
               AppButton(label: 'Save Expense', onPressed: _addExpense),
-              const SizedBox(height: 20),
+              SizedBox(height: 20),
             ],
           ),
         ),

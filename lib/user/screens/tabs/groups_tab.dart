@@ -28,23 +28,92 @@ class GroupsTab extends StatelessWidget {
       ),
       body: activeGroups.isEmpty
           ? Center(
-              child: Text(
-                'No active groups',
-                style: TextStyle(
-                  color: isDark
-                      ? AppColors.darkSubtext
-                      : AppColors.lightSubtext,
-                  fontSize: 16,
-                ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.receipt_long_rounded,
+                      size: 64,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                  SizedBox(height: 32),
+                  Text(
+                    'No expenses yet',
+                    style: TextStyle(
+                      color: isDark ? AppColors.darkText : AppColors.lightText,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  SizedBox(height: 12),
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 40),
+                    child: Text(
+                      'You haven\'t split any bills yet. Create a group to get started!',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: isDark
+                            ? AppColors.darkSubtext
+                            : AppColors.lightSubtext,
+                        fontSize: 16,
+                        height: 1.5,
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 32),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'Tap the + button below to create a group',
+                          ),
+                        ),
+                      );
+                    },
+                    icon: Icon(
+                      Icons.add_rounded,
+                      size: 20,
+                      color: Colors.white,
+                    ),
+                    label: Text(
+                      'Create your first group',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 32,
+                        vertical: 16,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      elevation: 0,
+                    ),
+                  ),
+                ],
               ),
             )
           : ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               itemCount: activeGroups.length,
               itemBuilder: (context, index) {
                 final group = activeGroups[index];
                 return Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
+                  padding: EdgeInsets.only(bottom: 16),
                   child: InkWell(
                     onTap: () => Navigator.pushNamed(
                       context,
@@ -53,7 +122,7 @@ class GroupsTab extends StatelessWidget {
                     ),
                     borderRadius: BorderRadius.circular(20),
                     child: Container(
-                      padding: const EdgeInsets.all(16),
+                      padding: EdgeInsets.all(16),
                       decoration: BoxDecoration(
                         color: isDark
                             ? AppColors.darkSurface
@@ -67,42 +136,49 @@ class GroupsTab extends StatelessWidget {
                       ),
                       child: Row(
                         children: [
-                          Container(
-                            width: 50,
-                            height: 50,
-                            decoration: BoxDecoration(
-                              color: isDark
-                                  ? AppColors.darkBg
-                                  : AppColors.lightBg,
-                              borderRadius: BorderRadius.circular(14),
-                              image: group.customImageUrl != null
-                                  ? DecorationImage(
-                                      image: NetworkImage(
-                                        group.customImageUrl!,
+                          Hero(
+                            tag: 'group_avatar_${group.id}',
+                            child: Container(
+                              width: 50,
+                              height: 50,
+                              decoration: BoxDecoration(
+                                color: isDark
+                                    ? AppColors.darkBg
+                                    : AppColors.lightBg,
+                                borderRadius: BorderRadius.circular(14),
+                                image: group.customImageUrl != null
+                                    ? DecorationImage(
+                                        image: NetworkImage(
+                                          group.customImageUrl!,
+                                        ),
+                                        fit: BoxFit.cover,
+                                      )
+                                    : null,
+                              ),
+                              child: group.customImageUrl == null
+                                  ? Center(
+                                      child: Material(
+                                        color: Colors.transparent,
+                                        child: Text(
+                                          DummyData.users
+                                              .firstWhere(
+                                                (u) => u.id == group.creatorId,
+                                                orElse: () =>
+                                                    DummyData.users.first,
+                                              )
+                                              .avatarInitials,
+                                          style: TextStyle(
+                                            fontSize: 20,
+                                            fontWeight: FontWeight.bold,
+                                            color: AppColors.primary,
+                                          ),
+                                        ),
                                       ),
-                                      fit: BoxFit.cover,
                                     )
                                   : null,
                             ),
-                            child: group.customImageUrl == null
-                                ? Center(
-                                    child: Text(
-                                      DummyData.users
-                                          .firstWhere(
-                                            (u) => u.id == group.creatorId,
-                                            orElse: () => DummyData.users.first,
-                                          )
-                                          .avatarInitials,
-                                      style: const TextStyle(
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.bold,
-                                        color: AppColors.primary,
-                                      ),
-                                    ),
-                                  )
-                                : null,
                           ),
-                          const SizedBox(width: 16),
+                          SizedBox(width: 16),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -117,7 +193,7 @@ class GroupsTab extends StatelessWidget {
                                     fontWeight: FontWeight.w700,
                                   ),
                                 ),
-                                const SizedBox(height: 4),
+                                SizedBox(height: 4),
                                 Row(
                                   children: [
                                     Icon(
@@ -127,7 +203,7 @@ class GroupsTab extends StatelessWidget {
                                           ? AppColors.darkSubtext
                                           : AppColors.lightSubtext,
                                     ),
-                                    const SizedBox(width: 4),
+                                    SizedBox(width: 4),
                                     Text(
                                       '${group.members.length} members',
                                       style: TextStyle(
@@ -155,9 +231,9 @@ class GroupsTab extends StatelessWidget {
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
-                              const SizedBox(height: 4),
+                              SizedBox(height: 4),
                               Container(
-                                padding: const EdgeInsets.symmetric(
+                                padding: EdgeInsets.symmetric(
                                   horizontal: 8,
                                   vertical: 4,
                                 ),

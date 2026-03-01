@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:splitease_test/core/models/dummy_data.dart';
 import 'package:splitease_test/core/models/group_model.dart';
 import 'package:splitease_test/core/models/member_model.dart';
@@ -65,14 +67,14 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
                           : AppColors.lightSurfaceVariant,
                     ),
                   ),
-                  focusedBorder: const UnderlineInputBorder(
+                  focusedBorder: UnderlineInputBorder(
                     borderSide: BorderSide(color: AppColors.primary),
                   ),
                 ),
                 style: TextStyle(color: textColor),
                 autofocus: true,
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
               TextField(
                 controller: phoneCtrl,
                 keyboardType: TextInputType.phone,
@@ -86,8 +88,46 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
                           : AppColors.lightSurfaceVariant,
                     ),
                   ),
-                  focusedBorder: const UnderlineInputBorder(
+                  focusedBorder: UnderlineInputBorder(
                     borderSide: BorderSide(color: AppColors.primary),
+                  ),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      Icons.contacts_rounded,
+                      color: AppColors.primary,
+                    ),
+                    onPressed: () async {
+                      if (!kIsWeb &&
+                          (defaultTargetPlatform == TargetPlatform.iOS ||
+                              defaultTargetPlatform ==
+                                  TargetPlatform.android)) {
+                        try {
+                          if (await FlutterContacts.requestPermission()) {
+                            final contact =
+                                await FlutterContacts.openExternalPick();
+                            if (contact != null) {
+                              final fullContact =
+                                  await FlutterContacts.getContact(contact.id);
+                              if (fullContact != null &&
+                                  fullContact.phones.isNotEmpty) {
+                                nameCtrl.text = fullContact.displayName;
+                                phoneCtrl.text =
+                                    fullContact.phones.first.number;
+                              } else if (contact.phones.isNotEmpty) {
+                                nameCtrl.text = contact.displayName;
+                                phoneCtrl.text = contact.phones.first.number;
+                              } else {
+                                nameCtrl.text = contact.displayName;
+                              }
+                            }
+                          }
+                        } catch (e) {
+                          // Ignore
+                        }
+                      } else {
+                        // ignore
+                      }
+                    },
                   ),
                 ),
                 style: TextStyle(color: textColor),
@@ -120,14 +160,14 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
                   Navigator.pop(context);
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
+                    SnackBar(
                       content: Text('Name and WhatsApp number are required.'),
                       backgroundColor: AppColors.error,
                     ),
                   );
                 }
               },
-              child: const Text(
+              child: Text(
                 'Add',
                 style: TextStyle(
                   color: AppColors.primary,
@@ -168,7 +208,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
           builder: (context, scrollController) {
             return Column(
               children: [
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 Container(
                   width: 40,
                   height: 4,
@@ -179,7 +219,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: 16),
                 Text(
                   'Add App Friend',
                   style: TextStyle(
@@ -188,7 +228,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: 16),
                 if (availableUsers.isEmpty)
                   Expanded(
                     child: Center(
@@ -210,7 +250,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
                             backgroundColor: AppColors.primary,
                             child: Text(
                               user.avatarInitials,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
@@ -248,7 +288,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
                                 ),
                               );
                             },
-                            child: const Text(
+                            child: Text(
                               'Add',
                               style: TextStyle(
                                 color: AppColors.primary,
@@ -286,7 +326,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
         leading: GestureDetector(
           onTap: () => Navigator.pop(context),
           child: Container(
-            margin: const EdgeInsets.all(8),
+            margin: EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: surfaceColor,
               borderRadius: BorderRadius.circular(10),
@@ -294,25 +334,68 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
             child: Icon(Icons.arrow_back_rounded, color: textColor, size: 20),
           ),
         ),
-        title: Text(
-          widget.group.name,
-          style: TextStyle(
-            color: textColor,
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-          ),
+        title: Row(
+          children: [
+            Hero(
+              tag: 'group_avatar_${widget.group.id}',
+              child: Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                  image: widget.group.customImageUrl != null
+                      ? DecorationImage(
+                          image: NetworkImage(widget.group.customImageUrl!),
+                          fit: BoxFit.cover,
+                        )
+                      : null,
+                ),
+                child: widget.group.customImageUrl == null
+                    ? Center(
+                        child: Material(
+                          color: Colors.transparent,
+                          child: Text(
+                            DummyData.users
+                                .firstWhere(
+                                  (u) => u.id == widget.group.creatorId,
+                                  orElse: () => DummyData.users.first,
+                                )
+                                .avatarInitials,
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        ),
+                      )
+                    : null,
+              ),
+            ),
+            SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                widget.group.name,
+                style: TextStyle(
+                  color: textColor,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
         ),
         actions: [
           if (widget.group.creatorId == DummyData.currentUser.id)
             IconButton(
-              icon: const Icon(
-                Icons.add_a_photo_outlined,
-                color: AppColors.primary,
-              ),
+              icon: Icon(Icons.add_a_photo_outlined, color: AppColors.primary),
               onPressed: () {
                 // Mock action for changing the group icon
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
+                  SnackBar(
                     content: Text('Icon updated successfully! (Mock)'),
                     backgroundColor: AppColors.primary,
                   ),
@@ -324,10 +407,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
               },
             ),
           IconButton(
-            icon: const Icon(
-              Icons.delete_outline_rounded,
-              color: AppColors.error,
-            ),
+            icon: Icon(Icons.delete_outline_rounded, color: AppColors.error),
             onPressed: () {
               showDialog(
                 context: context,
@@ -357,7 +437,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
                         Navigator.pop(context); // Close dialog
                         Navigator.pop(context); // Go back to Home
                       },
-                      child: const Text(
+                      child: Text(
                         'Delete',
                         style: TextStyle(
                           color: AppColors.error,
@@ -376,10 +456,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
           indicatorColor: AppColors.primary,
           labelColor: AppColors.primary,
           unselectedLabelColor: subColor,
-          labelStyle: const TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 14,
-          ),
+          labelStyle: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
           tabs: const [
             Tab(text: 'Overview'),
             Tab(text: 'Group Chat'),
@@ -396,8 +473,8 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
           ).then((_) => setState(() {})); // Refresh on return
         },
         backgroundColor: AppColors.primary,
-        icon: const Icon(Icons.add_rounded, color: Colors.white),
-        label: const Text(
+        icon: Icon(Icons.add_rounded, color: Colors.white),
+        label: Text(
           'Expense',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
@@ -407,19 +484,17 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
         children: [
           // Overview Tab
           ListView(
-            padding: const EdgeInsets.all(AppTheme.padding),
+            padding: EdgeInsets.all(AppTheme.padding),
             children: [
               Container(
-                padding: const EdgeInsets.all(20),
+                padding: EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: AppColors.primaryGradient,
-                  ),
+                  gradient: LinearGradient(colors: AppColors.primaryGradient),
                   borderRadius: BorderRadius.circular(24),
                 ),
                 child: Column(
                   children: [
-                    const Text(
+                    Text(
                       'Total Amount',
                       style: TextStyle(
                         color: Colors.white70,
@@ -427,10 +502,10 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
                         fontWeight: FontWeight.w500,
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    SizedBox(height: 8),
                     Text(
                       '₹${widget.group.totalAmount.toStringAsFixed(0)}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: Colors.white,
                         fontSize: 36,
                         fontWeight: FontWeight.w700,
@@ -439,7 +514,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
                   ],
                 ),
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: 24),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -453,7 +528,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
                   ),
                   Text(
                     '${widget.group.paidCount}/${widget.group.members.length} Paid',
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: AppColors.primary,
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
@@ -461,11 +536,11 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
               ...widget.group.members.map(
                 (member) => MemberTile(member: member),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
               ListTile(
                 onTap: () {
                   showModalBottomSheet(
@@ -481,7 +556,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const SizedBox(height: 16),
+                            SizedBox(height: 16),
                             Text(
                               'Add Member',
                               style: TextStyle(
@@ -490,9 +565,9 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            const SizedBox(height: 16),
+                            SizedBox(height: 16),
                             ListTile(
-                              leading: const CircleAvatar(
+                              leading: CircleAvatar(
                                 backgroundColor: AppColors.primary,
                                 child: Icon(
                                   Icons.person_search_rounded,
@@ -525,7 +600,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
                                 backgroundColor: AppColors.primary.withValues(
                                   alpha: 0.2,
                                 ),
-                                child: const Icon(
+                                child: Icon(
                                   Icons.person_add_alt_1_rounded,
                                   color: AppColors.primary,
                                 ),
@@ -538,7 +613,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
                                 ),
                               ),
                               subtitle: Text(
-                                'Add someone manually (no app needed)',
+                                'Add directly to the group without asking for permission',
                                 style: TextStyle(color: subColor, fontSize: 12),
                               ),
                               onTap: () {
@@ -551,7 +626,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
                                 );
                               },
                             ),
-                            const SizedBox(height: 16),
+                            SizedBox(height: 16),
                           ],
                         ),
                       );
@@ -565,13 +640,13 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
                     color: AppColors.primary.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.person_add_rounded,
                     color: AppColors.primary,
                     size: 20,
                   ),
                 ),
-                title: const Text(
+                title: Text(
                   'Add Member',
                   style: TextStyle(
                     color: AppColors.primary,
@@ -582,7 +657,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              const SizedBox(height: 48), // Padding for FAB
+              SizedBox(height: 48), // Padding for FAB
             ],
           ),
           // Chat Tab
@@ -590,7 +665,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
             children: [
               Expanded(
                 child: ListView.builder(
-                  padding: const EdgeInsets.all(16),
+                  padding: EdgeInsets.all(16),
                   itemCount: widget.group.messages.length,
                   itemBuilder: (context, index) {
                     final msg = widget.group.messages[index];
@@ -606,10 +681,10 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
 
                     if (msg.isSystem) {
                       return Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        padding: EdgeInsets.symmetric(vertical: 12),
                         child: Center(
                           child: Container(
-                            padding: const EdgeInsets.symmetric(
+                            padding: EdgeInsets.symmetric(
                               horizontal: 16,
                               vertical: 8,
                             ),
@@ -627,7 +702,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
                     }
 
                     return Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
+                      padding: EdgeInsets.only(bottom: 16),
                       child: Row(
                         mainAxisAlignment: isMe
                             ? MainAxisAlignment.end
@@ -641,18 +716,18 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
                               ),
                               child: Text(
                                 senderName.substring(0, 1),
-                                style: const TextStyle(
+                                style: TextStyle(
                                   color: AppColors.primary,
                                   fontSize: 12,
                                 ),
                               ),
                             ),
-                          const SizedBox(width: 8),
+                          SizedBox(width: 8),
                           Container(
                             constraints: BoxConstraints(
                               maxWidth: MediaQuery.of(context).size.width * 0.7,
                             ),
-                            padding: const EdgeInsets.all(12),
+                            padding: EdgeInsets.all(12),
                             decoration: BoxDecoration(
                               color: isMe ? AppColors.primary : surfaceColor,
                               borderRadius: BorderRadius.circular(16).copyWith(
@@ -676,7 +751,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
-                                  const SizedBox(height: 4),
+                                  SizedBox(height: 4),
                                 ],
                                 Text(
                                   msg.text,
@@ -695,7 +770,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
                 ),
               ),
               Container(
-                padding: const EdgeInsets.all(16),
+                padding: EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: surfaceColor,
                   border: Border(
@@ -718,10 +793,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(
-                        Icons.send_rounded,
-                        color: AppColors.primary,
-                      ),
+                      icon: Icon(Icons.send_rounded, color: AppColors.primary),
                       onPressed: () {
                         if (_msgController.text.isNotEmpty) {
                           _msgController.clear();

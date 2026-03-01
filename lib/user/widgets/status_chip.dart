@@ -29,7 +29,7 @@ class StatusChip extends StatelessWidget {
               shape: BoxShape.circle,
             ),
           ),
-          const SizedBox(width: 5),
+          SizedBox(width: 5),
           Text(
             isPaid ? 'Paid' : 'Pending',
             style: TextStyle(

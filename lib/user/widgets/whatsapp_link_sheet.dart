@@ -35,7 +35,7 @@ class _WhatsAppLinkSheetState extends State<WhatsAppLinkSheet>
   void _sendOtp() {
     if (_phoneController.text.length < 10) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text('Please enter a valid mobile number first'),
           backgroundColor: AppColors.error,
         ),
@@ -44,7 +44,7 @@ class _WhatsAppLinkSheetState extends State<WhatsAppLinkSheet>
     }
     setState(() => _otpSent = true);
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
+      SnackBar(
         content: Text('OTP Sent to WhatsApp! Use 1234 for testing.'),
         backgroundColor: AppColors.primary,
       ),
@@ -56,7 +56,7 @@ class _WhatsAppLinkSheetState extends State<WhatsAppLinkSheet>
       Navigator.pop(context, true); // Returning true marks it as successful
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text('Invalid OTP'),
           backgroundColor: AppColors.error,
         ),
@@ -82,7 +82,7 @@ class _WhatsAppLinkSheetState extends State<WhatsAppLinkSheet>
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -99,7 +99,7 @@ class _WhatsAppLinkSheetState extends State<WhatsAppLinkSheet>
                 ),
               ),
             ),
-            const SizedBox(height: 20),
+            SizedBox(height: 20),
             Text(
               'Link WhatsApp',
               style: TextStyle(
@@ -108,7 +108,7 @@ class _WhatsAppLinkSheetState extends State<WhatsAppLinkSheet>
                 fontWeight: FontWeight.w700,
               ),
             ),
-            const SizedBox(height: 20),
+            SizedBox(height: 20),
             _buildLinkOptions(isDark, subColor),
           ],
         ),
@@ -124,13 +124,13 @@ class _WhatsAppLinkSheetState extends State<WhatsAppLinkSheet>
           indicatorColor: AppColors.whatsapp,
           labelColor: AppColors.whatsapp,
           unselectedLabelColor: subColor,
-          labelStyle: const TextStyle(fontWeight: FontWeight.w600),
-          tabs: const [
+          labelStyle: TextStyle(fontWeight: FontWeight.w600),
+          tabs: [
             Tab(text: 'Mobile OTP'),
             Tab(text: 'QR Scan'),
           ],
         ),
-        const SizedBox(height: 20),
+        SizedBox(height: 20),
         SizedBox(
           height: 300,
           child: TabBarView(
@@ -145,7 +145,7 @@ class _WhatsAppLinkSheetState extends State<WhatsAppLinkSheet>
                     keyboardType: TextInputType.phone,
                     decoration: InputDecoration(
                       hintText: 'Enter Mobile Number',
-                      prefixIcon: const Icon(Icons.phone_rounded),
+                      prefixIcon: Icon(Icons.phone_rounded),
                       filled: true,
                       fillColor: isDark ? AppColors.darkBg : AppColors.lightBg,
                       border: OutlineInputBorder(
@@ -154,7 +154,7 @@ class _WhatsAppLinkSheetState extends State<WhatsAppLinkSheet>
                       ),
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  SizedBox(height: 16),
                   if (_otpSent)
                     TextFormField(
                       controller: _otpController,
@@ -162,7 +162,7 @@ class _WhatsAppLinkSheetState extends State<WhatsAppLinkSheet>
                       maxLength: 4,
                       decoration: InputDecoration(
                         hintText: 'Enter 4-digit OTP',
-                        prefixIcon: const Icon(Icons.lock_outline_rounded),
+                        prefixIcon: Icon(Icons.lock_outline_rounded),
                         filled: true,
                         fillColor: isDark
                             ? AppColors.darkBg
@@ -179,7 +179,7 @@ class _WhatsAppLinkSheetState extends State<WhatsAppLinkSheet>
                     icon: _otpSent
                         ? Icons.check_circle_outline_rounded
                         : Icons.send_rounded,
-                    gradientColors: const [
+                    gradientColors: [
                       AppColors.whatsapp,
                       AppColors.whatsapp,
                     ],
@@ -196,10 +196,10 @@ class _WhatsAppLinkSheetState extends State<WhatsAppLinkSheet>
                     textAlign: TextAlign.center,
                     style: TextStyle(color: subColor, fontSize: 13),
                   ),
-                  const SizedBox(height: 16),
+                  SizedBox(height: 16),
                   Expanded(
                     child: Container(
-                      padding: const EdgeInsets.all(8),
+                      padding: EdgeInsets.all(8),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(16),
@@ -219,10 +219,10 @@ class _WhatsAppLinkSheetState extends State<WhatsAppLinkSheet>
                       ),
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  SizedBox(height: 16),
                   AppButton(
                     label: 'Simulate Link via QR',
-                    gradientColors: const [
+                    gradientColors: [
                       AppColors.whatsapp,
                       AppColors.whatsapp,
                     ],

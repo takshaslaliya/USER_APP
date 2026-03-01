@@ -22,8 +22,8 @@ class GroupCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(16),
+        margin: EdgeInsets.only(bottom: 12),
+        padding: EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: surfaceColor,
           borderRadius: BorderRadius.circular(AppTheme.borderRadius),
@@ -40,38 +40,44 @@ class GroupCard extends StatelessWidget {
             Row(
               children: [
                 // Group icon (Leader's profile pic or custom image)
-                Container(
-                  width: 42,
-                  height: 42,
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(10),
-                    image: group.customImageUrl != null
-                        ? DecorationImage(
-                            image: NetworkImage(group.customImageUrl!),
-                            fit: BoxFit.cover,
+                Hero(
+                  tag: 'group_avatar_${group.id}',
+                  child: Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                      image: group.customImageUrl != null
+                          ? DecorationImage(
+                              image: NetworkImage(group.customImageUrl!),
+                              fit: BoxFit.cover,
+                            )
+                          : null,
+                    ),
+                    child: group.customImageUrl == null
+                        ? Center(
+                            child: Material(
+                              color: Colors.transparent,
+                              child: Text(
+                                DummyData.users
+                                    .firstWhere(
+                                      (u) => u.id == group.creatorId,
+                                      orElse: () => DummyData.users.first,
+                                    )
+                                    .avatarInitials,
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                            ),
                           )
                         : null,
                   ),
-                  child: group.customImageUrl == null
-                      ? Center(
-                          child: Text(
-                            DummyData.users
-                                .firstWhere(
-                                  (u) => u.id == group.creatorId,
-                                  orElse: () => DummyData.users.first,
-                                )
-                                .avatarInitials,
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.primary,
-                            ),
-                          ),
-                        )
-                      : null,
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -86,7 +92,7 @@ class GroupCard extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 2),
+                      SizedBox(height: 2),
                       Text(
                         '${group.members.length} members',
                         style: TextStyle(color: subColor, fontSize: 12),
@@ -105,7 +111,7 @@ class GroupCard extends StatelessWidget {
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    SizedBox(height: 4),
                     StatusChip(
                       isPaid:
                           group.paidAmount >= group.totalAmount &&
@@ -116,7 +122,7 @@ class GroupCard extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 14),
+            SizedBox(height: 14),
             // Progress bar
             ClipRRect(
               borderRadius: BorderRadius.circular(4),
@@ -134,7 +140,7 @@ class GroupCard extends StatelessWidget {
                 minHeight: 4,
               ),
             ),
-            const SizedBox(height: 6),
+            SizedBox(height: 6),
             Text(
               '${group.paidCount}/${group.members.length} paid',
               style: TextStyle(color: subColor, fontSize: 11),

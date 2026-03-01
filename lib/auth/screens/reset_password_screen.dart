@@ -35,7 +35,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     setState(() => _isLoading = false);
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
+      SnackBar(
         content: Text('Password reset successfully! Please log in.'),
         backgroundColor: AppColors.paid,
       ),
@@ -65,7 +65,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         leading: GestureDetector(
           onTap: () => Navigator.pop(context),
           child: Container(
-            margin: const EdgeInsets.all(8),
+            margin: EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
               borderRadius: BorderRadius.circular(10),
@@ -79,12 +79,12 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24.0),
+        padding: EdgeInsets.all(24.0),
         child: Column(
           children: [
-            const SizedBox(height: 24),
+            SizedBox(height: 24),
             Icon(Icons.lock_reset_rounded, size: 80, color: AppColors.primary),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             Text(
               'Your new password must be different from previous used passwords.',
               textAlign: TextAlign.center,
@@ -93,7 +93,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                 fontSize: 15,
               ),
             ),
-            const SizedBox(height: 48),
+            SizedBox(height: 48),
             Form(
               key: _formKey,
               child: Column(
@@ -103,7 +103,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                     obscureText: _obscureNew,
                     decoration: InputDecoration(
                       hintText: 'New Password',
-                      prefixIcon: const Icon(
+                      prefixIcon: Icon(
                         Icons.lock_outline_rounded,
                         size: 20,
                       ),
@@ -134,13 +134,13 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                       return null;
                     },
                   ),
-                  const SizedBox(height: 16),
+                  SizedBox(height: 16),
                   TextFormField(
                     controller: _confirmPasswordController,
                     obscureText: _obscureConfirm,
                     decoration: InputDecoration(
                       hintText: 'Confirm Password',
-                      prefixIcon: const Icon(
+                      prefixIcon: Icon(
                         Icons.lock_outline_rounded,
                         size: 20,
                       ),
@@ -173,7 +173,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                       return null;
                     },
                   ),
-                  const SizedBox(height: 48),
+                  SizedBox(height: 48),
                   AppButton(
                     label: 'Reset Password',
                     isLoading: _isLoading,

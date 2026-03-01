@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:splitease_test/core/theme/app_theme.dart';
 import 'package:splitease_test/shared/widgets/app_button.dart';
+import 'package:splitease_test/core/services/friends_storage.dart';
 
 class AddFriendsTab extends StatefulWidget {
   const AddFriendsTab({super.key});
@@ -14,12 +17,11 @@ class _AddFriendsTabState extends State<AddFriendsTab>
   late TabController _tabController;
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
-  final TextEditingController _emailController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 2, vsync: this);
   }
 
   @override
@@ -27,21 +29,92 @@ class _AddFriendsTabState extends State<AddFriendsTab>
     _tabController.dispose();
     _nameController.dispose();
     _phoneController.dispose();
-    _emailController.dispose();
     super.dispose();
   }
 
-  void _addFriend() {
-    // Basic mock implementation for adding friends
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Friend added successfully!'),
-        backgroundColor: AppColors.primary,
-      ),
+  Future<void> _addFriend() async {
+    final name = _nameController.text.trim();
+    final phone = _phoneController.text.trim();
+
+    // Save to local persistence
+    await FriendsStorage.saveFriend(
+      name.isNotEmpty ? name : 'New Friend',
+      phone,
     );
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Friend added and saved locally!'),
+          backgroundColor: AppColors.primary,
+        ),
+      );
+    }
+
     _nameController.clear();
     _phoneController.clear();
-    _emailController.clear();
+  }
+
+  Future<void> _pickContact(
+    TextEditingController nameCtrl,
+    TextEditingController phoneCtrl,
+  ) async {
+    if (!kIsWeb &&
+        (defaultTargetPlatform == TargetPlatform.iOS ||
+            defaultTargetPlatform == TargetPlatform.android)) {
+      try {
+        if (await FlutterContacts.requestPermission()) {
+          final contact = await FlutterContacts.openExternalPick();
+          if (contact != null) {
+            final fullContact = await FlutterContacts.getContact(contact.id);
+            if (fullContact != null && fullContact.phones.isNotEmpty) {
+              setState(() {
+                nameCtrl.text = fullContact.displayName;
+                phoneCtrl.text = fullContact.phones.first.number;
+              });
+            } else if (contact.phones.isNotEmpty) {
+              setState(() {
+                nameCtrl.text = contact.displayName;
+                phoneCtrl.text = contact.phones.first.number;
+              });
+            } else {
+              setState(() {
+                nameCtrl.text = contact.displayName;
+              });
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('No phone number found for this contact.'),
+                  ),
+                );
+              }
+            }
+          }
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Contacts permission denied')),
+            );
+          }
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Could not open contacts.')),
+          );
+        }
+      }
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Contact selection is only supported on mobile devices.',
+            ),
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -72,14 +145,13 @@ class _AddFriendsTabState extends State<AddFriendsTab>
           indicatorColor: AppColors.primary,
           labelColor: AppColors.primary,
           unselectedLabelColor: subColor,
-          labelStyle: const TextStyle(
+          labelStyle: TextStyle(
             fontWeight: FontWeight.w600,
             fontSize: 13,
           ),
           tabs: const [
-            Tab(text: 'Phone'),
-            Tab(text: 'Email'),
-            Tab(text: 'Name (Offline)'),
+            Tab(text: 'Mobile Number'),
+            Tab(text: 'Offline Add'),
           ],
         ),
       ),
@@ -100,21 +172,7 @@ class _AddFriendsTabState extends State<AddFriendsTab>
             keyboardType: TextInputType.phone,
           ),
 
-          // 2. Email Tab
-          _buildInputTab(
-            context: context,
-            surfaceColor: surfaceColor,
-            textColor: textColor,
-            subColor: subColor,
-            isDark: isDark,
-            icon: Icons.email_rounded,
-            title: 'Add by Email Address',
-            controller: _emailController,
-            hintText: 'john@example.com',
-            keyboardType: TextInputType.emailAddress,
-          ),
-
-          // 3. Manual Name (Offline member) Tab
+          // 2. Manual Name (Offline member) Tab
           _buildOfflineMemberTab(
             context: context,
             surfaceColor: surfaceColor,
@@ -135,12 +193,12 @@ class _AddFriendsTabState extends State<AddFriendsTab>
     required bool isDark,
   }) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(AppTheme.padding),
+      padding: EdgeInsets.all(AppTheme.padding),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: const EdgeInsets.all(24),
+            padding: EdgeInsets.all(24),
             decoration: BoxDecoration(
               color: surfaceColor,
               borderRadius: BorderRadius.circular(24),
@@ -159,13 +217,13 @@ class _AddFriendsTabState extends State<AddFriendsTab>
                     color: AppColors.primary.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.person_add_rounded,
                     color: AppColors.primary,
                     size: 32,
                   ),
                 ),
-                const SizedBox(height: 24),
+                SizedBox(height: 24),
                 Text(
                   'Add Offline Member',
                   style: TextStyle(
@@ -174,15 +232,15 @@ class _AddFriendsTabState extends State<AddFriendsTab>
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
                 Text(
-                  'Add their name and WhatsApp number to invite them.',
+                  'Add the member directly to the group without asking for permission.',
                   textAlign: TextAlign.center,
                   style: TextStyle(color: subColor, fontSize: 13, height: 1.5),
                 ),
-                const SizedBox(height: 24),
+                SizedBox(height: 24),
                 Container(
-                  padding: const EdgeInsets.symmetric(
+                  padding: EdgeInsets.symmetric(
                     horizontal: 16,
                     vertical: 4,
                   ),
@@ -209,9 +267,9 @@ class _AddFriendsTabState extends State<AddFriendsTab>
                     ),
                   ),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 Container(
-                  padding: const EdgeInsets.symmetric(
+                  padding: EdgeInsets.symmetric(
                     horizontal: 16,
                     vertical: 4,
                   ),
@@ -235,13 +293,21 @@ class _AddFriendsTabState extends State<AddFriendsTab>
                       hintText: 'WhatsApp Number (Required)',
                       hintStyle: TextStyle(color: subColor),
                       border: InputBorder.none,
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          Icons.contacts_rounded,
+                          color: AppColors.primary,
+                        ),
+                        onPressed: () =>
+                            _pickContact(_nameController, _phoneController),
+                      ),
                     ),
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 48),
+          SizedBox(height: 48),
           AppButton(
             label: 'Add Friend',
             icon: Icons.person_add_rounded,
@@ -251,7 +317,7 @@ class _AddFriendsTabState extends State<AddFriendsTab>
                 _addFriend();
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
+                  SnackBar(
                     content: Text('Name and WhatsApp number are required.'),
                     backgroundColor: AppColors.error,
                   ),
@@ -277,12 +343,12 @@ class _AddFriendsTabState extends State<AddFriendsTab>
     required TextInputType keyboardType,
   }) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(AppTheme.padding),
+      padding: EdgeInsets.all(AppTheme.padding),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: const EdgeInsets.all(24),
+            padding: EdgeInsets.all(24),
             decoration: BoxDecoration(
               color: surfaceColor,
               borderRadius: BorderRadius.circular(24),
@@ -303,7 +369,7 @@ class _AddFriendsTabState extends State<AddFriendsTab>
                   ),
                   child: Icon(icon, color: AppColors.primary, size: 32),
                 ),
-                const SizedBox(height: 24),
+                SizedBox(height: 24),
                 Text(
                   title,
                   style: TextStyle(
@@ -312,15 +378,15 @@ class _AddFriendsTabState extends State<AddFriendsTab>
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
                 Text(
                   'They will receive a notification to join SplitEase once you add them to your groups.',
                   textAlign: TextAlign.center,
                   style: TextStyle(color: subColor, fontSize: 13, height: 1.5),
                 ),
-                const SizedBox(height: 24),
+                SizedBox(height: 24),
                 Container(
-                  padding: const EdgeInsets.symmetric(
+                  padding: EdgeInsets.symmetric(
                     horizontal: 16,
                     vertical: 4,
                   ),
@@ -344,13 +410,25 @@ class _AddFriendsTabState extends State<AddFriendsTab>
                       hintText: hintText,
                       hintStyle: TextStyle(color: subColor),
                       border: InputBorder.none,
+                      suffixIcon: keyboardType == TextInputType.phone
+                          ? IconButton(
+                              icon: Icon(
+                                Icons.contacts_rounded,
+                                color: AppColors.primary,
+                              ),
+                              onPressed: () => _pickContact(
+                                TextEditingController(),
+                                controller,
+                              ),
+                            )
+                          : null,
                     ),
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 48),
+          SizedBox(height: 48),
           AppButton(
             label: 'Add Friend',
             icon: Icons.person_add_rounded,

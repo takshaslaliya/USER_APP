@@ -37,7 +37,7 @@ class AdminAnalyticsScreen extends StatelessWidget {
         leading: GestureDetector(
           onTap: () => Navigator.pop(context),
           child: Container(
-            margin: const EdgeInsets.all(8),
+            margin: EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: surfaceColor,
               borderRadius: BorderRadius.circular(10),
@@ -55,7 +55,7 @@ class AdminAnalyticsScreen extends StatelessWidget {
         ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppTheme.padding),
+        padding: EdgeInsets.all(AppTheme.padding),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -68,16 +68,16 @@ class AdminAnalyticsScreen extends StatelessWidget {
                 fontWeight: FontWeight.w700,
               ),
             ),
-            const SizedBox(height: 4),
+            SizedBox(height: 4),
             Text(
               'Total splits created per month',
               style: TextStyle(color: subColor, fontSize: 12),
             ),
-            const SizedBox(height: 20),
+            SizedBox(height: 20),
             // Bar chart
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(20),
+              padding: EdgeInsets.all(20),
               decoration: BoxDecoration(
                 color: surfaceColor,
                 borderRadius: BorderRadius.circular(AppTheme.borderRadius),
@@ -95,7 +95,7 @@ class AdminAnalyticsScreen extends StatelessWidget {
                       size: Size.infinite,
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  SizedBox(height: 12),
                   // Month labels
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -111,7 +111,7 @@ class AdminAnalyticsScreen extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(height: 24),
+            SizedBox(height: 24),
             // Summary row
             Row(
               children: [
@@ -122,7 +122,7 @@ class AdminAnalyticsScreen extends StatelessWidget {
                   color: AppColors.primary,
                   isDark: isDark,
                 ),
-                const SizedBox(width: 10),
+                SizedBox(width: 10),
                 _SummaryChip(
                   label: 'Peak Month',
                   value: 'Feb',
@@ -130,7 +130,7 @@ class AdminAnalyticsScreen extends StatelessWidget {
                   color: AppColors.paid,
                   isDark: isDark,
                 ),
-                const SizedBox(width: 10),
+                SizedBox(width: 10),
                 _SummaryChip(
                   label: 'Top User',
                   value: 'Arjun',
@@ -140,7 +140,7 @@ class AdminAnalyticsScreen extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 24),
+            SizedBox(height: 24),
             // Category breakdown
             Text(
               'By Category',
@@ -150,9 +150,9 @@ class AdminAnalyticsScreen extends StatelessWidget {
                 fontWeight: FontWeight.w700,
               ),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             Container(
-              padding: const EdgeInsets.all(20),
+              padding: EdgeInsets.all(20),
               decoration: BoxDecoration(
                 color: surfaceColor,
                 borderRadius: BorderRadius.circular(AppTheme.borderRadius),
@@ -162,7 +162,7 @@ class AdminAnalyticsScreen extends StatelessWidget {
                 children: categories.map((cat) {
                   final pct = ((cat['amount'] as double) / totalCat);
                   return Padding(
-                    padding: const EdgeInsets.only(bottom: 14),
+                    padding: EdgeInsets.only(bottom: 14),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -185,14 +185,14 @@ class AdminAnalyticsScreen extends StatelessWidget {
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
-                            const SizedBox(width: 6),
+                            SizedBox(width: 6),
                             Text(
                               '${(pct * 100).toStringAsFixed(0)}%',
                               style: TextStyle(color: subColor, fontSize: 11),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 6),
+                        SizedBox(height: 6),
                         ClipRRect(
                           borderRadius: BorderRadius.circular(4),
                           child: LinearProgressIndicator(
@@ -212,7 +212,7 @@ class AdminAnalyticsScreen extends StatelessWidget {
                 }).toList(),
               ),
             ),
-            const SizedBox(height: 24),
+            SizedBox(height: 24),
           ],
         ),
       ),
@@ -282,7 +282,7 @@ class _SummaryChip extends StatelessWidget {
 
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.all(12),
+        padding: EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: surfaceColor,
           borderRadius: BorderRadius.circular(12),
@@ -291,7 +291,7 @@ class _SummaryChip extends StatelessWidget {
         child: Column(
           children: [
             Icon(icon, color: color, size: 22),
-            const SizedBox(height: 6),
+            SizedBox(height: 6),
             Text(
               value,
               style: TextStyle(

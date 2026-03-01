@@ -52,12 +52,17 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildFloatingBottomNav(bool isDark) {
     return SafeArea(
       child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 20),
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+        margin: EdgeInsets.symmetric(horizontal: 20),
+        padding: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
         decoration: BoxDecoration(
-          color: AppColors.lightSurface, // dark navy regardless of mode
+          color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
           borderRadius: BorderRadius.circular(40),
-          border: Border.all(color: AppColors.lightSurfaceVariant, width: 0.8),
+          border: Border.all(
+            color: isDark
+                ? AppColors.darkSurfaceVariant
+                : AppColors.lightSurfaceVariant,
+            width: 0.8,
+          ),
           boxShadow: [
             BoxShadow(
               color: AppColors.primary.withValues(alpha: 0.1),
@@ -86,7 +91,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildNavItem(int index, IconData icon, bool isDark) {
     final isSelected = _currentIndex == index;
     final color = isSelected
-        ? const Color(0xFF0A1628)
+        ? Color(0xFF0A1628)
         : AppColors.darkSubtext; // Dark navy for selected icon
 
     return GestureDetector(

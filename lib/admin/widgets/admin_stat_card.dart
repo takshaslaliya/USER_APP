@@ -28,7 +28,7 @@ class AdminStatCard extends StatelessWidget {
     isDark ? AppColors.darkSubtext : AppColors.lightSubtext;
 
     return Container(
-      padding: const EdgeInsets.all(12), // reduced from 16
+      padding: EdgeInsets.all(12), // reduced from 16
       decoration: BoxDecoration(
         color: surfaceColor,
         borderRadius: BorderRadius.circular(AppTheme.borderRadius),
@@ -51,7 +51,7 @@ class AdminStatCard extends StatelessWidget {
             ),
             child: Icon(icon, color: iconColor, size: 18),
           ),
-          const SizedBox(height: 8), // reduced spacing
+          SizedBox(height: 8), // reduced spacing
           Flexible(
             child: Text(
               value,
@@ -63,7 +63,7 @@ class AdminStatCard extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 2),
+          SizedBox(height: 2),
           Flexible(
             child: Text(
               label,

@@ -18,7 +18,7 @@ class MemberTile extends StatelessWidget {
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.symmetric(vertical: 12),
+          padding: EdgeInsets.symmetric(vertical: 12),
           child: Row(
             children: [
               // Avatar
@@ -28,7 +28,7 @@ class MemberTile extends StatelessWidget {
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: member.isPaid
-                        ? [AppColors.paid, const Color(0xFF059669)]
+                        ? [AppColors.paid, Color(0xFF059669)]
                         : AppColors.primaryGradient,
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
@@ -38,7 +38,7 @@ class MemberTile extends StatelessWidget {
                 child: Center(
                   child: Text(
                     member.avatarInitials,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: Colors.white,
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
@@ -46,7 +46,7 @@ class MemberTile extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -59,7 +59,7 @@ class MemberTile extends StatelessWidget {
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    const SizedBox(height: 2),
+                    SizedBox(height: 2),
                     Text(
                       '₹${member.amountOwed.toStringAsFixed(0)}',
                       style: TextStyle(color: subColor, fontSize: 13),

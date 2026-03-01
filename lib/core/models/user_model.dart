@@ -13,7 +13,6 @@ class UserModel {
   final bool isActive;
   final bool isUsingWhatsApp;
   final String phoneNumber;
-  final bool requireInviteConsent; // Added for Privacy Settings
 
   const UserModel({
     required this.id,
@@ -27,7 +26,6 @@ class UserModel {
     this.isActive = true,
     this.isUsingWhatsApp = false,
     this.phoneNumber = '+91 98765 43210',
-    this.requireInviteConsent = false,
   });
 
   bool get isAdmin => role == UserRole.admin;

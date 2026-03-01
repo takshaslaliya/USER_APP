@@ -46,7 +46,7 @@ class _AdminSplitsScreenState extends State<AdminSplitsScreen> {
         leading: GestureDetector(
           onTap: () => Navigator.pop(context),
           child: Container(
-            margin: const EdgeInsets.all(8),
+            margin: EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: surfaceColor,
               borderRadius: BorderRadius.circular(10),
@@ -65,17 +65,17 @@ class _AdminSplitsScreenState extends State<AdminSplitsScreen> {
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(56),
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            padding: EdgeInsets.fromLTRB(16, 0, 16, 12),
             child: Row(
               children: ['All', 'Pending', 'Settled'].map((f) {
                 final selected = _filter == f;
                 return Padding(
-                  padding: const EdgeInsets.only(right: 8),
+                  padding: EdgeInsets.only(right: 8),
                   child: GestureDetector(
                     onTap: () => setState(() => _filter = f),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
-                      padding: const EdgeInsets.symmetric(
+                      padding: EdgeInsets.symmetric(
                         horizontal: 16,
                         vertical: 8,
                       ),
@@ -107,9 +107,9 @@ class _AdminSplitsScreenState extends State<AdminSplitsScreen> {
         ),
       ),
       body: ListView.separated(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 80),
+        padding: EdgeInsets.fromLTRB(16, 12, 16, 80),
         itemCount: _filtered.length,
-        separatorBuilder: (context, index) => const SizedBox(height: 10),
+        separatorBuilder: (context, index) => SizedBox(height: 10),
         itemBuilder: (context, index) {
           final group = _filtered[index];
           // Find creator name
@@ -119,7 +119,7 @@ class _AdminSplitsScreenState extends State<AdminSplitsScreen> {
           );
 
           return Container(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: surfaceColor,
               borderRadius: BorderRadius.circular(AppTheme.borderRadius),
@@ -151,7 +151,7 @@ class _AdminSplitsScreenState extends State<AdminSplitsScreen> {
                           ? Center(
                               child: Text(
                                 creator.avatarInitials,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
                                   color: AppColors.primary,
@@ -160,7 +160,7 @@ class _AdminSplitsScreenState extends State<AdminSplitsScreen> {
                             )
                           : null,
                     ),
-                    const SizedBox(width: 12),
+                    SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -203,7 +203,7 @@ class _AdminSplitsScreenState extends State<AdminSplitsScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 10),
+                SizedBox(height: 10),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(4),
                   child: LinearProgressIndicator(
@@ -220,7 +220,7 @@ class _AdminSplitsScreenState extends State<AdminSplitsScreen> {
                     minHeight: 4,
                   ),
                 ),
-                const SizedBox(height: 6),
+                SizedBox(height: 6),
                 Row(
                   children: [
                     Text(

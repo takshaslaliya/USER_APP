@@ -38,7 +38,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
         leading: GestureDetector(
           onTap: () => Navigator.pop(context),
           child: Container(
-            margin: const EdgeInsets.all(8),
+            margin: EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: surfaceColor,
               borderRadius: BorderRadius.circular(10),
@@ -57,15 +57,15 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(64),
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            padding: EdgeInsets.fromLTRB(16, 0, 16, 12),
             child: TextField(
               onChanged: (v) => setState(() => _search = v),
               decoration: InputDecoration(
                 hintText: 'Search users...',
-                prefixIcon: const Icon(Icons.search_rounded, size: 20),
+                prefixIcon: Icon(Icons.search_rounded, size: 20),
                 suffixIcon: _search.isNotEmpty
                     ? IconButton(
-                        icon: const Icon(Icons.clear_rounded, size: 18),
+                        icon: Icon(Icons.clear_rounded, size: 18),
                         onPressed: () => setState(() => _search = ''),
                       )
                     : null,
@@ -75,9 +75,9 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
         ),
       ),
       body: ListView.separated(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 80),
+        padding: EdgeInsets.fromLTRB(16, 12, 16, 80),
         itemCount: filtered.length,
-        separatorBuilder: (context, index) => const SizedBox(height: 10),
+        separatorBuilder: (context, index) => SizedBox(height: 10),
         itemBuilder: (context, index) {
           final user = filtered[index];
           return GestureDetector(
@@ -90,7 +90,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
               surfaceColor,
             ),
             child: Container(
-              padding: const EdgeInsets.all(14),
+              padding: EdgeInsets.all(14),
               decoration: BoxDecoration(
                 color: surfaceColor,
                 borderRadius: BorderRadius.circular(AppTheme.borderRadius),
@@ -117,7 +117,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                     child: Center(
                       child: Text(
                         user.avatarInitials,
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: Colors.white,
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
@@ -125,7 +125,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -140,11 +140,11 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
-                            const SizedBox(width: 8),
+                            SizedBox(width: 8),
                             _RoleBadge(isAdmin: user.isAdmin),
                           ],
                         ),
-                        const SizedBox(height: 2),
+                        SizedBox(height: 2),
                         Text(
                           user.email,
                           style: TextStyle(color: subColor, fontSize: 12),
@@ -194,7 +194,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (_) => Padding(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -211,7 +211,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 20),
+            SizedBox(height: 20),
             Row(
               children: [
                 Container(
@@ -228,7 +228,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                   child: Center(
                     child: Text(
                       user.avatarInitials,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: Colors.white,
                         fontSize: 20,
                         fontWeight: FontWeight.w700,
@@ -236,7 +236,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(width: 14),
+                SizedBox(width: 14),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -253,7 +253,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 20),
+            SizedBox(height: 20),
             _DetailRow(
               label: 'Email',
               value: user.email,
@@ -282,10 +282,10 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
             _DetailRow(
               label: 'WhatsApp User',
               value: user.isUsingWhatsApp ? 'Yes' : 'No',
-              textColor: user.isUsingWhatsApp ? const Color(0xFF25D366) : subColor,
+              textColor: user.isUsingWhatsApp ? Color(0xFF25D366) : subColor,
               subColor: subColor,
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
@@ -297,15 +297,15 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  padding: EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                child: const Text('Edit Details'),
+                child: Text('Edit Details'),
               ),
             ),
-            const SizedBox(height: 10),
+            SizedBox(height: 10),
           ],
         ),
       ),
@@ -358,15 +358,15 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
               _buildTextField('Name', nameController, textColor, subColor),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               _buildTextField('Email', emailController, textColor, subColor),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               _buildTextField(
                   'Password', passwordController, textColor, subColor,
                   isPassword: true),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
                 title: Text('Active Account',
@@ -385,7 +385,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                 activeThumbColor: AppColors.primary,
                 activeTrackColor: AppColors.primary.withValues(alpha: 0.5),
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: 24),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
@@ -404,12 +404,12 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    padding: EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text('Save Changes'),
+                  child: Text('Save Changes'),
                 ),
               ),
             ],
@@ -426,7 +426,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label, style: TextStyle(color: subColor, fontSize: 12)),
-        const SizedBox(height: 6),
+        SizedBox(height: 6),
         TextField(
           controller: controller,
           obscureText: isPassword,
@@ -434,7 +434,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
           decoration: InputDecoration(
             isDense: true,
             contentPadding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
               borderSide: BorderSide(color: subColor.withValues(alpha: 0.2)),
@@ -453,7 +453,7 @@ class _RoleBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
         color: isAdmin
             ? AppColors.adminAccent.withValues(alpha: 0.1)
@@ -488,7 +488,7 @@ class _DetailRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
           Text(label, style: TextStyle(color: subColor, fontSize: 13)),
