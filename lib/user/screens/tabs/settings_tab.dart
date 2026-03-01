@@ -5,6 +5,12 @@ import 'package:splitease_test/core/services/auth_service.dart';
 import 'package:splitease_test/core/services/whatsapp_service.dart';
 import 'package:splitease_test/user/widgets/whatsapp_link_sheet.dart';
 import 'package:splitease_test/core/theme/app_theme.dart';
+import 'package:splitease_test/core/models/achievement_model.dart';
+import 'package:splitease_test/core/services/achievement_service.dart';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SettingsTab extends StatefulWidget {
   const SettingsTab({super.key});
@@ -16,12 +22,24 @@ class SettingsTab extends StatefulWidget {
 class _SettingsTabState extends State<SettingsTab> {
   bool _isWhatsAppLinked = false;
   UserModel? _user;
+  List<AchievementModel> _achievements = [];
   bool _isLoading = false;
+  String? _profileImagePath;
 
   @override
   void initState() {
     super.initState();
     _loadUser();
+    _loadProfileImage();
+  }
+
+  Future<void> _loadProfileImage() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (mounted) {
+      setState(() {
+        _profileImagePath = prefs.getString('profile_image_path');
+      });
+    }
   }
 
   Future<void> _loadUser() async {
@@ -31,16 +49,20 @@ class _SettingsTabState extends State<SettingsTab> {
     final results = await Future.wait([
       AuthService.getProfile(),
       WhatsAppService.getStatus(),
+      AchievementService.fetchAchievements(),
     ]);
 
     final profileRes = results[0] as AuthResult;
     final whatsappRes = results[1] as WhatsAppResult;
+    final achievementsData = results[2] as List<AchievementModel>;
 
     if (mounted) {
       setState(() {
         _isLoading = false;
         if (profileRes.success && profileRes.data != null) {
           _user = UserModel.fromJson(profileRes.data!);
+          // Sync WhatsApp status from profile
+          _isWhatsAppLinked = _user!.whatsappConnected;
         } else if (!profileRes.success) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -49,10 +71,85 @@ class _SettingsTabState extends State<SettingsTab> {
             ),
           );
         }
+
+        // Fallback/Update if the dedicated WhatsApp status call returned different/more specific info
         if (whatsappRes.success && whatsappRes.data != null) {
           _isWhatsAppLinked = whatsappRes.data!['status'] == 'connected';
         }
+        _achievements = achievementsData;
       });
+    }
+  }
+
+  _AchievementUIConfig _getAchievementConfig(String type) {
+    switch (type) {
+      case 'regular_split':
+        return _AchievementUIConfig(Icons.receipt_long_rounded, Colors.amber);
+      case 'sub_split':
+        return _AchievementUIConfig(Icons.account_tree_rounded, Colors.green);
+      case 'app_usage':
+        return _AchievementUIConfig(Icons.check_circle_rounded, Colors.blue);
+      default:
+        return _AchievementUIConfig(Icons.star_rounded, Colors.purple);
+    }
+  }
+
+  Future<void> _pickImage() async {
+    // Request permission (specifically for photos/gallery)
+    final status = await Permission.photos.request();
+
+    if (status.isGranted || status.isLimited) {
+      final picker = ImagePicker();
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 512,
+        maxHeight: 512,
+        imageQuality: 100,
+      );
+
+      if (image != null) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('profile_image_path', image.path);
+        if (mounted) {
+          setState(() {
+            _profileImagePath = image.path;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Profile picture updated locally')),
+          );
+        }
+      }
+    } else if (status.isPermanentlyDenied) {
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Permission Required'),
+            content: const Text(
+              'Gallery access is needed to change your profile picture. Please enable it in Settings.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () {
+                  openAppSettings();
+                  Navigator.pop(context);
+                },
+                child: const Text('Open Settings'),
+              ),
+            ],
+          ),
+        );
+      }
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Gallery permission is required')),
+        );
+      }
     }
   }
 
@@ -170,6 +267,7 @@ class _SettingsTabState extends State<SettingsTab> {
         _isLoading = false;
         if (res.success && res.data != null) {
           _user = UserModel.fromJson(res.data!);
+          _isWhatsAppLinked = _user!.whatsappConnected;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Profile updated successfully!'),
@@ -340,34 +438,7 @@ class _SettingsTabState extends State<SettingsTab> {
                             ),
                             onTap: () {
                               Navigator.pop(context);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    'Gallery Selection (Coming Soon)',
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                          ListTile(
-                            leading: Icon(
-                              Icons.camera_alt_rounded,
-                              color: AppColors.primary,
-                            ),
-                            title: Text(
-                              'Take Photo',
-                              style: TextStyle(
-                                color: textColor,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            onTap: () {
-                              Navigator.pop(context);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('Camera App (Coming Soon)'),
-                                ),
-                              );
+                              _pickImage();
                             },
                           ),
                           SizedBox(height: 8),
@@ -396,16 +467,24 @@ class _SettingsTabState extends State<SettingsTab> {
                         ),
                       ],
                     ),
-                    child: Center(
-                      child: Text(
-                        initials,
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 32,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
+                    child: _profileImagePath != null
+                        ? ClipRRect(
+                            borderRadius: BorderRadius.circular(32),
+                            child: Image.file(
+                              File(_profileImagePath!),
+                              fit: BoxFit.cover,
+                            ),
+                          )
+                        : Center(
+                            child: Text(
+                              initials,
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 32,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
                   ),
                   Container(
                     padding: EdgeInsets.all(6),
@@ -415,7 +494,7 @@ class _SettingsTabState extends State<SettingsTab> {
                       border: Border.all(color: surfaceColor, width: 2),
                     ),
                     child: Icon(
-                      Icons.camera_alt_rounded,
+                      Icons.edit_rounded,
                       color: Colors.white,
                       size: 16,
                     ),
@@ -550,35 +629,35 @@ class _SettingsTabState extends State<SettingsTab> {
             ),
             SizedBox(height: 12),
             SizedBox(
-              height: 110,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                children: [
-                  _BadgeCard(
-                    icon: Icons.workspace_premium_rounded,
-                    title: 'Settled 10',
-                    subtitle: 'Groups Settled',
-                    color: Colors.amber,
-                    isDark: isDark,
-                  ),
-                  SizedBox(width: 12),
-                  _BadgeCard(
-                    icon: Icons.timer_rounded,
-                    title: 'On-time',
-                    subtitle: 'Quick Payer',
-                    color: Colors.green,
-                    isDark: isDark,
-                  ),
-                  SizedBox(width: 12),
-                  _BadgeCard(
-                    icon: Icons.group_add_rounded,
-                    title: 'Socialite',
-                    subtitle: 'Invited 5 Friends',
-                    color: Colors.blue,
-                    isDark: isDark,
-                  ),
-                ],
-              ),
+              height: 140,
+              child: _achievements.isEmpty
+                  ? Center(
+                      child: Text(
+                        'No achievements found',
+                        style: TextStyle(color: subColor, fontSize: 13),
+                      ),
+                    )
+                  : ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: _achievements.length,
+                      itemBuilder: (context, index) {
+                        final a = _achievements[index];
+                        final config = _getAchievementConfig(a.type);
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 12),
+                          child: Opacity(
+                            opacity: a.isUnlocked ? 1.0 : 0.5,
+                            child: _BadgeCard(
+                              icon: config.icon,
+                              title: a.title,
+                              subtitle: a.description,
+                              color: a.isUnlocked ? config.color : subColor,
+                              isDark: isDark,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
             ),
             SizedBox(height: 32),
             Align(
@@ -612,14 +691,24 @@ class _SettingsTabState extends State<SettingsTab> {
                     width: 48,
                     height: 48,
                     decoration: BoxDecoration(
-                      color: AppColors.whatsapp.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(14),
+                      color: Colors.white, // Provide a clean white base
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.1),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     ),
-                    child: Padding(
-                      padding: EdgeInsets.all(8),
-                      child: Image.asset(
-                        'assets/images/whatsapp_logo.png',
-                        fit: BoxFit.contain,
+                    child: ClipOval(
+                      child: Center(
+                        child: Image.asset(
+                          'assets/images/whatsapp_logo.png',
+                          width: 48,
+                          height: 48,
+                          fit: BoxFit.cover, // Zoom in slightly to cut corners
+                        ),
                       ),
                     ),
                   ),
@@ -1059,18 +1148,22 @@ class _BadgeCard extends StatelessWidget {
         ),
       ),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min, // Added to prevent overflow
         children: [
-          Icon(icon, color: color, size: 32),
-          SizedBox(height: 8),
-          Text(
-            title,
-            style: TextStyle(
-              color: isDark ? AppColors.darkText : AppColors.lightText,
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
+          Icon(icon, color: color, size: 30), // Slightly smaller icon
+          SizedBox(height: 6), // Slightly smaller spacing
+          Flexible(
+            child: Text(
+              title,
+              style: TextStyle(
+                color: isDark ? AppColors.darkText : AppColors.lightText,
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-            textAlign: TextAlign.center,
           ),
           SizedBox(height: 2),
           Text(
@@ -1081,9 +1174,17 @@ class _BadgeCard extends StatelessWidget {
               fontWeight: FontWeight.w500,
             ),
             textAlign: TextAlign.center,
+            maxLines: 2, // Allow wrapping but limit it
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
     );
   }
+}
+
+class _AchievementUIConfig {
+  final IconData icon;
+  final Color color;
+  _AchievementUIConfig(this.icon, this.color);
 }

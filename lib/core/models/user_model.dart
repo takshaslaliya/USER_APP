@@ -13,6 +13,7 @@ class UserModel {
   final int totalSplits;
   final bool isActive;
   final bool isUsingWhatsApp;
+  final bool whatsappConnected;
 
   const UserModel({
     required this.id,
@@ -27,6 +28,7 @@ class UserModel {
     this.totalSplits = 0,
     this.isActive = true,
     this.isUsingWhatsApp = false,
+    this.whatsappConnected = false,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
@@ -45,6 +47,7 @@ class UserModel {
       totalSplits: json['total_splits'] ?? 0,
       isActive: json['is_active'] ?? true,
       isUsingWhatsApp: json['is_using_whatsapp'] ?? false,
+      whatsappConnected: json['whatsapp_connected'] ?? false,
     );
   }
 
@@ -62,6 +65,7 @@ class UserModel {
       'total_splits': totalSplits,
       'is_active': isActive,
       'is_using_whatsapp': isUsingWhatsApp,
+      'whatsapp_connected': whatsappConnected,
     };
   }
 

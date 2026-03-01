@@ -128,6 +128,7 @@ class _AddGroupTabState extends State<AddGroupTab> {
                       ),
                     )
                   : AppButton(label: 'Create Group', onPressed: _createGroup),
+              SizedBox(height: 140), // Space for bottom nav
             ],
           ),
         ),

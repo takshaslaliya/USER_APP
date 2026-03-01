@@ -172,4 +172,12 @@ class GroupService {
   ) async {
     return _request('DELETE', '/$groupId/members/$memberId');
   }
+
+  // 10. Delete Sub-Group (Expense Group)
+  static Future<GroupResult> deleteSubGroup(
+    String groupId,
+    String subGroupId,
+  ) async {
+    return _request('DELETE', '/$groupId/sub-groups/$subGroupId');
+  }
 }

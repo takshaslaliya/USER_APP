@@ -32,6 +32,9 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
     super.initState();
     _group = widget.group;
     _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(() {
+      if (mounted) setState(() {});
+    });
     _initUser();
     _refreshGroup();
   }
@@ -577,22 +580,27 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => AddExpenseScreen(group: _group),
+      floatingActionButton: _tabController.index == 1
+          ? null
+          : FloatingActionButton.extended(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => AddExpenseScreen(group: _group),
+                  ),
+                ).then((_) => _refreshGroup()); // Refresh on return
+              },
+              backgroundColor: AppColors.primary,
+              icon: Icon(Icons.add_rounded, color: Colors.white),
+              label: Text(
+                'Expense',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
-          ).then((_) => _refreshGroup()); // Refresh on return
-        },
-        backgroundColor: AppColors.primary,
-        icon: Icon(Icons.add_rounded, color: Colors.white),
-        label: Text(
-          'Expense',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-      ),
       body: TabBarView(
         controller: _tabController,
         children: [
@@ -786,39 +794,45 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
                   },
                 ),
               ),
-              Container(
-                padding: EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: surfaceColor,
-                  border: Border(
-                    top: BorderSide(
-                      color: isDark
-                          ? AppColors.darkSurfaceVariant
-                          : AppColors.lightSurfaceVariant,
-                    ),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _msgController,
-                        decoration: const InputDecoration(
-                          hintText: 'Type a message...',
-                          border: InputBorder.none,
-                        ),
+              SafeArea(
+                bottom: true,
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: surfaceColor,
+                    border: Border(
+                      top: BorderSide(
+                        color: isDark
+                            ? AppColors.darkSurfaceVariant
+                            : AppColors.lightSurfaceVariant,
                       ),
                     ),
-                    IconButton(
-                      icon: Icon(Icons.send_rounded, color: AppColors.primary),
-                      onPressed: () {
-                        if (_msgController.text.isNotEmpty) {
-                          _msgController.clear();
-                          FocusScope.of(context).unfocus();
-                        }
-                      },
-                    ),
-                  ],
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _msgController,
+                          decoration: const InputDecoration(
+                            hintText: 'Type a message...',
+                            border: InputBorder.none,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        icon: Icon(
+                          Icons.send_rounded,
+                          color: AppColors.primary,
+                        ),
+                        onPressed: () {
+                          if (_msgController.text.isNotEmpty) {
+                            _msgController.clear();
+                            FocusScope.of(context).unfocus();
+                          }
+                        },
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],

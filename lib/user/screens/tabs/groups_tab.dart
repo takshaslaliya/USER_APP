@@ -121,7 +121,7 @@ class _GroupsTabState extends State<GroupsTab> {
                       padding: EdgeInsets.symmetric(
                         horizontal: 20,
                         vertical: 16,
-                      ),
+                      ).copyWith(bottom: 140),
                       itemCount: activeGroups.length,
                       itemBuilder: (context, index) {
                         final group = activeGroups[index];

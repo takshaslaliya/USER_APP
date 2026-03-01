@@ -185,6 +185,83 @@ class _ExpenseDetailsScreenState extends State<ExpenseDetailsScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         iconTheme: IconThemeData(color: textColor),
+        actions: [
+          if (widget.group.creatorId == _currentUserId)
+            IconButton(
+              icon: Icon(Icons.delete_outline_rounded, color: AppColors.error),
+              tooltip: 'Delete Expense Group',
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    backgroundColor: surfaceColor,
+                    title: Text(
+                      'Delete Expense Group?',
+                      style: TextStyle(
+                        color: textColor,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    content: Text(
+                      'Are you sure you want to delete "${_expense.title}"? This will remove all associated splits and cannot be undone.',
+                      style: TextStyle(color: subColor),
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: Text(
+                          'Cancel',
+                          style: TextStyle(color: textColor),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () async {
+                          Navigator.pop(context); // Close dialog
+                          setState(() => _isLoading = true);
+                          final res = await GroupService.deleteSubGroup(
+                            widget.group.id,
+                            _expense.id,
+                          );
+
+                          if (mounted) {
+                            setState(() => _isLoading = false);
+                            if (res.success) {
+                              Navigator.pop(
+                                context,
+                                true,
+                              ); // Go back with success
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: const Text(
+                                    'Expense group deleted successfully',
+                                  ),
+                                  backgroundColor: AppColors.primary,
+                                ),
+                              );
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(res.message),
+                                  backgroundColor: AppColors.error,
+                                ),
+                              );
+                            }
+                          }
+                        },
+                        child: Text(
+                          'Delete',
+                          style: TextStyle(
+                            color: AppColors.error,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),

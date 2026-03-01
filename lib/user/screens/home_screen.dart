@@ -4,6 +4,7 @@ import 'package:splitease_test/user/screens/tabs/dashboard_tab.dart';
 import 'package:splitease_test/user/screens/tabs/groups_tab.dart';
 import 'package:splitease_test/user/screens/tabs/add_group_tab.dart';
 import 'package:splitease_test/user/screens/tabs/settings_tab.dart';
+import 'package:splitease_test/core/services/achievement_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -14,6 +15,13 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    // Track app opening for 'Consistent User' achievement
+    AchievementService.trackUsage();
+  }
 
   final List<Widget> _tabs = [
     const DashboardTab(),

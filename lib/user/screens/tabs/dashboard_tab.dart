@@ -487,7 +487,7 @@ class _DashboardTabState extends State<DashboardTab> {
                         ),
                 ),
 
-                SizedBox(height: 120), // Space for bottom nav
+                SizedBox(height: 140), // Space for bottom nav
               ],
             ),
           ),

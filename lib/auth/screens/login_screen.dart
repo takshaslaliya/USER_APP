@@ -232,7 +232,7 @@ class _LoginScreenState extends State<LoginScreen>
                   Text(
                     step == 'email'
                         ? 'Enter your email address to receive a one-time password.'
-                        : 'Enter the 4-digit code sent to ${emailCtrl.text}',
+                        : 'Enter the 6-digit code sent to ${emailCtrl.text}',
                     style: TextStyle(
                       color: isDark
                           ? AppColors.darkSubtext
@@ -261,9 +261,9 @@ class _LoginScreenState extends State<LoginScreen>
                     TextFormField(
                       controller: otpCtrl,
                       keyboardType: TextInputType.number,
-                      maxLength: 4,
+                      maxLength: 6,
                       decoration: InputDecoration(
-                        hintText: 'Enter 4-digit OTP',
+                        hintText: 'Enter 6-digit OTP',
                         prefixIcon: Icon(Icons.lock_outline_rounded, size: 20),
                         filled: true,
                         fillColor: isDark
@@ -315,7 +315,7 @@ class _LoginScreenState extends State<LoginScreen>
                         ),
                       );
                     } else {
-                      if (otpCtrl.text == '1234') {
+                      if (otpCtrl.text.length == 6) {
                         Navigator.pop(context); // Close dialog
                         Navigator.pushNamed(context, '/reset-password');
                       } else {
@@ -603,9 +603,9 @@ class _LoginScreenState extends State<LoginScreen>
                                   TextFormField(
                                     controller: _otpController,
                                     keyboardType: TextInputType.number,
-                                    maxLength: 4,
+                                    maxLength: 6,
                                     decoration: InputDecoration(
-                                      hintText: 'Enter 4-digit OTP',
+                                      hintText: 'Enter 6-digit OTP',
                                       prefixIcon: Icon(
                                         Icons.pin_outlined,
                                         size: 20,
@@ -616,8 +616,8 @@ class _LoginScreenState extends State<LoginScreen>
                                       if (v == null || v.isEmpty) {
                                         return 'Enter the OTP';
                                       }
-                                      if (v != '1234') {
-                                        return 'Invalid OTP. Try 1234.';
+                                      if (v.length < 6) {
+                                        return 'OTP must be 6 digits';
                                       }
                                       return null;
                                     },

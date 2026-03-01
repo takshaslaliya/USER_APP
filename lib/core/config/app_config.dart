@@ -17,4 +17,7 @@ class AppConfig {
 
   /// WhatsApp API endpoints
   static const String whatsappUrl = '$apiBaseUrl/whatsapp';
+
+  /// Achievements API endpoints
+  static const String achievementsUrl = '$apiBaseUrl/achievements';
 }

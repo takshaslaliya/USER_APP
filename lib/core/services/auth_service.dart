@@ -244,12 +244,20 @@ class AuthService {
           .timeout(const Duration(seconds: 15));
 
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
-      if (response.statusCode == 200 && decoded['success'] == true) {
-        // Update local session with fresh data
-        final userData = decoded['data'] as Map<String, dynamic>;
+      Map<String, dynamic>? finalUserData =
+          decoded['data'] as Map<String, dynamic>?;
+
+      if (response.statusCode == 200 &&
+          decoded['success'] == true &&
+          finalUserData != null) {
+        // Merge with current local data to avoid losing fields not returned by API
+        final currentUser = await getUser();
         final currentToken = await getToken();
-        if (currentToken != null) {
-          await saveSession(currentToken, userData);
+        if (currentUser != null && currentToken != null) {
+          finalUserData = {...currentUser, ...finalUserData};
+          await saveSession(currentToken, finalUserData);
+        } else if (currentToken != null) {
+          await saveSession(currentToken, finalUserData);
         }
       }
 
@@ -260,7 +268,7 @@ class AuthService {
             (decoded['success'] == true
                 ? 'Success'
                 : 'Failed to fetch profile'),
-        data: decoded['data'] as Map<String, dynamic>?,
+        data: finalUserData,
       );
     } catch (e) {
       return AuthResult(
@@ -286,12 +294,20 @@ class AuthService {
           .timeout(const Duration(seconds: 15));
 
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
-      if (response.statusCode == 200 && decoded['success'] == true) {
-        // Update local session with fresh data
-        final userData = decoded['data'] as Map<String, dynamic>;
+      Map<String, dynamic>? finalUserData =
+          decoded['data'] as Map<String, dynamic>?;
+
+      if (response.statusCode == 200 &&
+          decoded['success'] == true &&
+          finalUserData != null) {
+        // Merge with current local data to avoid losing fields not returned by API
+        final currentUser = await getUser();
         final currentToken = await getToken();
-        if (currentToken != null) {
-          await saveSession(currentToken, userData);
+        if (currentUser != null && currentToken != null) {
+          finalUserData = {...currentUser, ...finalUserData};
+          await saveSession(currentToken, finalUserData);
+        } else if (currentToken != null) {
+          await saveSession(currentToken, finalUserData);
         }
       }
 
@@ -300,7 +316,7 @@ class AuthService {
         message:
             decoded['message'] ??
             (decoded['success'] == true ? 'Profile updated' : 'Update failed'),
-        data: decoded['data'] as Map<String, dynamic>?,
+        data: finalUserData,
       );
     } catch (e) {
       return AuthResult(
