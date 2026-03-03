@@ -55,22 +55,6 @@ class AppColors {
   static Color pendingBg = Color(0xFFFEF3C7);
   static Color error = Color(0xFFEF4444);
 
-  // Admin accent
-  static Color adminAccent = Color(0xFFFFD700); // Gold
-  static Color adminPrimary = Color(0xFF673AB7); // Deep Purple
-  static Color adminBgDark = Color(0xFF000000); // True Black
-  static Color adminSurfaceDark = Color(
-    0xFF140C20,
-  ); // Very deep purple/black surface
-  static Color adminSurfaceVariantDark = Color(
-    0xFF271B3E,
-  ); // Lighter purple-black for borders
-
-  static const List<Color> adminGradient = [
-    Color(0xFF8E24AA), // Lighter purple
-    Color(0xFF673AB7), // Primary deep purple
-  ];
-
   // Social
   static Color whatsapp = Color(0xFF25D366);
 }

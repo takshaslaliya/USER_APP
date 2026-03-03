@@ -79,21 +79,11 @@ class _IntroScreenState extends State<IntroScreen>
   Widget build(BuildContext context) {
     return Consumer<ThemeProvider>(
       builder: (context, themeProvider, child) => Scaffold(
-        backgroundColor: AppColors.darkBg,
+        backgroundColor: Color(0xFF0A1628), // Match logo navy background
         body: Container(
           width: double.infinity,
           height: double.infinity,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                AppColors.bgGradientDarkTop,
-                AppColors.darkBg,
-                AppColors.bgGradientDarkTop,
-              ],
-            ),
-          ),
+          color: Color(0xFF0A1628),
           child: SafeArea(
             child: Padding(
               padding: EdgeInsets.symmetric(horizontal: 32),
@@ -118,20 +108,29 @@ class _IntroScreenState extends State<IntroScreen>
                     ),
                   ),
                   const Spacer(flex: 3),
-                  // Get Started button
+                  // Sign Up button
                   FadeTransition(
                     opacity: _buttonFade,
-                    child: _buildGetStartedButton(context),
+                    child: _buildActionButton(
+                      context: context,
+                      label: 'Create Account',
+                      isPrimary: true,
+                      onTap: () => Navigator.pushNamed(
+                        context,
+                        '/login',
+                        arguments: {'isSignUp': true},
+                      ),
+                    ),
                   ),
                   SizedBox(height: 16),
+                  // Sign In button
                   FadeTransition(
                     opacity: _buttonFade,
-                    child: TextButton(
-                      onPressed: () => Navigator.pushNamed(context, '/login'),
-                      child: Text(
-                        'Already have an account? Sign in',
-                        style: TextStyle(color: Colors.white54, fontSize: 13),
-                      ),
+                    child: _buildActionButton(
+                      context: context,
+                      label: 'Sign In',
+                      isPrimary: false,
+                      onTap: () => Navigator.pushNamed(context, '/login'),
                     ),
                   ),
                   SizedBox(height: 32),
@@ -147,25 +146,10 @@ class _IntroScreenState extends State<IntroScreen>
   Widget _buildLogo() {
     return Column(
       children: [
-        Container(
-          width: 200,
-          height: 200,
-          decoration: const BoxDecoration(
-            image: DecorationImage(
-              image: AssetImage('assets/images/app_logo.png'),
-              fit: BoxFit.contain,
-            ),
-          ),
-        ),
-        SizedBox(height: 20),
-        Text(
-          'SplitEase',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 34,
-            fontWeight: FontWeight.w800,
-            letterSpacing: -0.5,
-          ),
+        Image.asset(
+          'assets/images/Full_Logo_With_Name.png',
+          width: 320,
+          fit: BoxFit.contain,
         ),
       ],
     );
@@ -204,39 +188,47 @@ class _IntroScreenState extends State<IntroScreen>
     );
   }
 
-  Widget _buildGetStartedButton(BuildContext context) {
+  Widget _buildActionButton({
+    required BuildContext context,
+    required String label,
+    required bool isPrimary,
+    required VoidCallback onTap,
+  }) {
     return GestureDetector(
-      onTap: () =>
-          Navigator.pushNamed(context, '/login', arguments: {'isSignUp': true}),
-      child: Container(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
         width: double.infinity,
-        height: 54,
+        height: 56,
         decoration: BoxDecoration(
-          gradient: LinearGradient(colors: AppColors.primaryGradient),
-          borderRadius: BorderRadius.circular(14),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.primary.withValues(alpha: 0.4),
-              blurRadius: 16,
-              offset: const Offset(0, 6),
-            ),
-          ],
+          gradient: isPrimary
+              ? LinearGradient(colors: AppColors.primaryGradient)
+              : null,
+          color: isPrimary ? null : Colors.white.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(16),
+          border: isPrimary
+              ? null
+              : Border.all(color: Colors.white24, width: 0.8),
+          boxShadow: isPrimary
+              ? [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.3),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
+                  ),
+                ]
+              : null,
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              'Get Started',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.2,
-              ),
+        child: Center(
+          child: Text(
+            label,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.2,
             ),
-            SizedBox(width: 8),
-            Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 20),
-          ],
+          ),
         ),
       ),
     );

@@ -58,9 +58,11 @@ dev_dependencies:
 # following page: https://dart.dev/tools/pub/pubspec
 
 flutter_launcher_icons:
-  android: "launcher_icon"
-  ios: true
-  image_path: "assets/images/app_logo.png"
+  android: true
+  ios: false
+  image_path: "assets/images/App_Logo.png"
+  adaptive_icon_background: "#0A1628"
+  adaptive_icon_foreground: "assets/images/App_Logo.png"
 
 # The following section is specific to Flutter packages.
 flutter:
@@ -73,7 +75,8 @@ flutter:
 
   # To add assets to your application, add an assets section, like this:
   assets:
-    - assets/images/app_logo.png
+    - assets/images/App_Logo.png
+    - assets/images/Full_Logo_With_Name.png
     - assets/images/whatsapp_logo.png
 
   # An image asset can refer to one or more resolution-specific "variants", see

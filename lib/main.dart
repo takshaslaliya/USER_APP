@@ -7,10 +7,6 @@ import 'package:splitease_test/auth/screens/intro_screen.dart';
 import 'package:splitease_test/auth/screens/login_screen.dart';
 import 'package:splitease_test/auth/screens/reset_password_screen.dart';
 import 'package:splitease_test/auth/screens/verify_otp_screen.dart';
-import 'package:splitease_test/admin/screens/admin_dashboard_screen.dart';
-import 'package:splitease_test/admin/screens/admin_users_screen.dart';
-import 'package:splitease_test/admin/screens/admin_splits_screen.dart';
-import 'package:splitease_test/admin/screens/admin_analytics_screen.dart';
 import 'package:splitease_test/user/screens/home_screen.dart';
 import 'package:splitease_test/user/screens/group_details_screen.dart';
 import 'package:splitease_test/core/models/group_model.dart';
@@ -29,15 +25,11 @@ void main() async {
   );
 
   final loggedIn = await AuthService.isLoggedIn();
-  final user = loggedIn ? await AuthService.getUser() : null;
-  final bool isAdmin = user?['role'] == 'admin';
 
   runApp(
     ChangeNotifierProvider<ThemeProvider>.value(
       value: themeProvider,
-      child: SplitEaseApp(
-        initialRoute: loggedIn ? (isAdmin ? '/admin' : '/home') : '/',
-      ),
+      child: SplitEaseApp(initialRoute: loggedIn ? '/home' : '/'),
     ),
   );
 }
@@ -71,18 +63,6 @@ class SplitEaseApp extends StatelessWidget {
             break;
           case '/reset-password':
             page = const ResetPasswordScreen();
-            break;
-          case '/admin':
-            page = const AdminDashboardScreen();
-            break;
-          case '/admin/users':
-            page = const AdminUsersScreen();
-            break;
-          case '/admin/splits':
-            page = const AdminSplitsScreen();
-            break;
-          case '/admin/analytics':
-            page = const AdminAnalyticsScreen();
             break;
           case '/home':
             page = const HomeScreen();

@@ -36,23 +36,30 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Scaffold(
-      backgroundColor: isDark ? AppColors.darkBg : AppColors.lightBg,
-      body: Stack(
-        children: [
-          IndexedStack(
-            index: _currentIndex > 2
-                ? _currentIndex
-                : _currentIndex, // handle offset if needed, but we keep tabs length 5
-            children: _tabs,
-          ),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 24, // Floating elevated
-            child: _buildFloatingBottomNav(isDark),
-          ),
-        ],
+    return PopScope(
+      // Never allow the back gesture/button to pop this route
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (_currentIndex != 0) {
+          // On non-dashboard tab → go back to dashboard
+          setState(() => _currentIndex = 0);
+        }
+        // On dashboard tab → do nothing (back button is fully blocked)
+      },
+      child: Scaffold(
+        backgroundColor: isDark ? AppColors.darkBg : AppColors.lightBg,
+        body: Stack(
+          children: [
+            IndexedStack(index: _currentIndex, children: _tabs),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 24,
+              child: _buildFloatingBottomNav(isDark),
+            ),
+          ],
+        ),
       ),
     );
   }

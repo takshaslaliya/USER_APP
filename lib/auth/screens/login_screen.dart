@@ -145,7 +145,7 @@ class _LoginScreenState extends State<LoginScreen>
       setState(() => _isLoading = false);
 
       if (result.success) {
-        Navigator.pushNamedAndRemoveUntil(context, '/admin', (r) => false);
+        Navigator.pushNamedAndRemoveUntil(context, '/home', (r) => false);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -166,7 +166,7 @@ class _LoginScreenState extends State<LoginScreen>
     setState(() => _isLoading = false);
 
     if (result.success) {
-      Navigator.pushNamedAndRemoveUntil(context, '/admin', (r) => false);
+      Navigator.pushNamedAndRemoveUntil(context, '/home', (r) => false);
     } else if (result.statusCode == 403) {
       // Email not verified — take them to the OTP screen
       ScaffoldMessenger.of(context).showSnackBar(
