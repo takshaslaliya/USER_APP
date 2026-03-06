@@ -48,6 +48,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   final List<String> _selectedParticipants = [];
 
   bool _isLoading = false;
+  Map<String, dynamic>? _settlementData;
 
   final Map<String, String> _phoneToNameCache = {};
 
@@ -253,7 +254,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       );
       if ((cSum - total).abs() > 0.1) {
         _snack(
-          'Custom amounts (₹${cSum.toStringAsFixed(0)}) must equal expense total (₹${total.toStringAsFixed(0)}).',
+          'Custom amounts (₹${cSum.toStringAsFixed(2)}) must equal expense total (₹${total.toStringAsFixed(2)}).',
         );
         return false;
       }
@@ -340,8 +341,10 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
         for (var p in allPhones) {
           await _getNameFromPhone(p);
         }
-        setState(() => _isLoading = false);
-        _showSettlementPlan(res.data);
+        setState(() {
+          _isLoading = false;
+          _settlementData = res.data;
+        });
       } else {
         setState(() => _isLoading = false);
         _snack(res.message);
@@ -449,7 +452,9 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                       Divider(color: borderColor),
                       TextFormField(
                         controller: _amountController,
-                        keyboardType: TextInputType.number,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
                         style: TextStyle(color: textColor),
                         decoration: const InputDecoration(
                           hintText: 'Amount (₹)',
@@ -484,6 +489,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                 subColor: subColor,
                 onTap: (val) => setState(() {
                   _paymentType = val;
+                  _settlementData = null;
                   _soloPayer = null;
                   _soloPayerIsRegistered = true;
                   _soloPayerUpiFromApi = null;
@@ -726,7 +732,10 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                                     width: 110,
                                     child: TextField(
                                       controller: _payerAmountControllers[n],
-                                      keyboardType: TextInputType.number,
+                                      keyboardType:
+                                          const TextInputType.numberWithOptions(
+                                            decimal: true,
+                                          ),
                                       textAlign: TextAlign.right,
                                       style: TextStyle(color: textColor),
                                       decoration: InputDecoration(
@@ -948,7 +957,10 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                                     width: 70,
                                     child: TextField(
                                       controller: controller,
-                                      keyboardType: TextInputType.number,
+                                      keyboardType:
+                                          const TextInputType.numberWithOptions(
+                                            decimal: true,
+                                          ),
                                       textAlign: TextAlign.right,
                                       style: TextStyle(
                                         color: textColor,
@@ -987,7 +999,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                                   ),
                                   onChanged: (val) {
                                     setState(() {
-                                      controller.text = val.toStringAsFixed(0);
+                                      controller.text = val.toStringAsFixed(2);
                                     });
                                   },
                                 ),
@@ -1058,7 +1070,10 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                                 width: 110,
                                 child: TextField(
                                   controller: _customControllers[n],
-                                  keyboardType: TextInputType.number,
+                                  keyboardType:
+                                      const TextInputType.numberWithOptions(
+                                        decimal: true,
+                                      ),
                                   textAlign: TextAlign.right,
                                   style: TextStyle(color: textColor),
                                   decoration: InputDecoration(
@@ -1114,7 +1129,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                                   double.tryParse(_amountController.text) ?? 0;
                               final ok = (sum - target).abs() < 0.1;
                               return Text(
-                                '₹${sum.toStringAsFixed(0)} / ₹${target.toStringAsFixed(0)}',
+                                '₹${sum.toStringAsFixed(2)} / ₹${target.toStringAsFixed(2)}',
                                 style: TextStyle(
                                   color: ok ? AppColors.paid : AppColors.error,
                                   fontWeight: FontWeight.bold,
@@ -1142,7 +1157,133 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                           : 'Save Expense',
                       onPressed: _addExpense,
                     ),
-              const SizedBox(height: 20),
+
+              if (_paymentType == 'Group Payment' &&
+                  _settlementData != null) ...[
+                const SizedBox(height: 32),
+                _header('Optimal Settlement Plan', textColor),
+                const SizedBox(height: 6),
+                Text(
+                  'Minimum transactions needed to settle all debts:',
+                  style: TextStyle(
+                    color: textColor.withValues(alpha: 0.6),
+                    fontSize: 13,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                _card(
+                  surfaceColor,
+                  borderColor,
+                  Column(
+                    children: [
+                      if ((_settlementData!['transactions'] as List).isEmpty)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 20),
+                          child: Center(
+                            child: Text(
+                              'Everyone is settled up!',
+                              style: TextStyle(color: textColor),
+                            ),
+                          ),
+                        )
+                      else
+                        ...(_settlementData!['transactions'] as List).map((tx) {
+                          final amount = (tx['amount'] as num).toDouble();
+                          final fromPhone = tx['from'] as String;
+                          final toPhone = tx['to'] as String;
+                          final fromName =
+                              _phoneToNameCache[fromPhone] ?? fromPhone;
+                          final toName = _phoneToNameCache[toPhone] ?? toPhone;
+
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 16),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        fromName,
+                                        style: TextStyle(
+                                          color: AppColors.error,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                      Text(
+                                        fromPhone,
+                                        style: TextStyle(
+                                          color: AppColors.error.withValues(
+                                            alpha: 0.6,
+                                          ),
+                                          fontSize: 10,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Icon(
+                                  Icons.arrow_forward_rounded,
+                                  color: AppColors.primary,
+                                  size: 16,
+                                ),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      Text(
+                                        toName,
+                                        textAlign: TextAlign.end,
+                                        style: TextStyle(
+                                          color: AppColors.paid,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                      Text(
+                                        toPhone,
+                                        textAlign: TextAlign.end,
+                                        style: TextStyle(
+                                          color: AppColors.paid.withValues(
+                                            alpha: 0.6,
+                                          ),
+                                          fontSize: 10,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primary.withValues(
+                                      alpha: 0.1,
+                                    ),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    '₹${amount.toStringAsFixed(2)}',
+                                    style: TextStyle(
+                                      color: AppColors.primary,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }),
+                    ],
+                  ),
+                ),
+              ],
+              const SizedBox(height: 40),
             ],
           ),
         ),
@@ -1238,162 +1379,4 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       side: BorderSide(color: selected ? AppColors.primary : borderColor),
     ),
   );
-
-  // ── Settlement plan modal ─────────────────────────────────────────────────
-
-  void _showSettlementPlan(dynamic data) {
-    final transactions = data['transactions'] as List<dynamic>? ?? [];
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) {
-        final isDark = Theme.of(ctx).brightness == Brightness.dark;
-        final bg = isDark ? AppColors.darkSurface : AppColors.lightSurface;
-        final tc = isDark ? AppColors.darkText : AppColors.lightText;
-        return Container(
-          decoration: BoxDecoration(
-            color: bg,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Optimal Settlement Plan',
-                style: TextStyle(
-                  color: tc,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                'Minimum transactions needed to settle all debts:',
-                style: TextStyle(
-                  color: tc.withValues(alpha: 0.6),
-                  fontSize: 13,
-                ),
-              ),
-              const SizedBox(height: 20),
-              if (transactions.isEmpty)
-                Center(
-                  child: Text(
-                    'Everyone is settled up!',
-                    style: TextStyle(color: tc),
-                  ),
-                )
-              else
-                ...transactions.map((tx) {
-                  final amount = (tx['amount'] as num).toDouble();
-                  final fromPhone = tx['from'] as String;
-                  final toPhone = tx['to'] as String;
-                  final fromName = _phoneToNameCache[fromPhone] ?? fromPhone;
-                  final toName = _phoneToNameCache[toPhone] ?? toPhone;
-
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 14),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                fromName,
-                                style: TextStyle(
-                                  color: AppColors.error,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              Text(
-                                fromPhone,
-                                style: TextStyle(
-                                  color: AppColors.error.withValues(alpha: 0.6),
-                                  fontSize: 10,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Icon(
-                          Icons.arrow_forward_rounded,
-                          color: AppColors.primary,
-                          size: 18,
-                        ),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Text(
-                                toName,
-                                textAlign: TextAlign.end,
-                                style: TextStyle(
-                                  color: AppColors.paid,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              Text(
-                                toPhone,
-                                textAlign: TextAlign.end,
-                                style: TextStyle(
-                                  color: AppColors.paid.withValues(alpha: 0.6),
-                                  fontSize: 10,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 5,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.primary.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            '₹${amount.toStringAsFixed(0)}',
-                            style: TextStyle(
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    padding: const EdgeInsets.symmetric(vertical: 15),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                  ),
-                  child: const Text(
-                    'Done',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
 }
