@@ -278,6 +278,36 @@ class AuthService {
   }
 
   // ─────────────────────────────────────────────────────────────────────────
+  // 7b. Check user status by mobile — POST /api/user/check-status
+  // ─────────────────────────────────────────────────────────────────────────
+
+  static Future<AuthResult> checkUserStatus(String mobileNumber) async {
+    try {
+      final headers = await getAuthHeaders();
+      final response = await http
+          .post(
+            Uri.parse('${AppConfig.userUrl}/check-status'),
+            headers: headers,
+            body: jsonEncode({'mobile_number': mobileNumber}),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+
+      return AuthResult(
+        success: decoded['success'] == true,
+        message: decoded['message'] ?? 'Checked',
+        data: decoded['data'] as Map<String, dynamic>?,
+      );
+    } catch (e) {
+      return AuthResult(
+        success: false,
+        message: 'Network error. Please try again.',
+      );
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
   // 8. Update user profile — PUT /api/user/profile
   // ─────────────────────────────────────────────────────────────────────────
 

@@ -105,7 +105,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
           return;
         }
 
-        _callAddMemberApi(name, phone);
+        _checkAndAddMember(name, phone);
       }
     } else {
       if (!mounted) return;
@@ -184,6 +184,135 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
           const SnackBar(content: Text('Photos permission denied')),
         );
       }
+    }
+  }
+
+  Future<void> _checkAndAddMember(String name, String phone) async {
+    // Normalize phone to E.164 (91XXXXXXXXXX format)
+    String normalized = phone.replaceAll(RegExp(r'[\s\-()]'), '');
+    if (normalized.startsWith('+')) normalized = normalized.substring(1);
+    if (!normalized.startsWith('91') && normalized.length == 10) {
+      normalized = '91$normalized';
+    }
+
+    setState(() => _isLoading = true);
+    final statusRes = await AuthService.checkUserStatus(normalized);
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    // Parse result
+    bool isRegistered = false;
+    String? upiId;
+    if (statusRes.success && statusRes.data != null) {
+      isRegistered = statusRes.data!['is_register'] == true;
+      final rawUpi = statusRes.data!['upi_id'];
+      if (rawUpi != null && rawUpi != false && rawUpi is String) {
+        upiId = rawUpi;
+      }
+    }
+
+    // Show status dialog before adding
+    if (!mounted) return;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? AppColors.darkText : AppColors.lightText;
+    final surfaceColor = isDark
+        ? AppColors.darkSurface
+        : AppColors.lightSurface;
+    final subColor = isDark ? AppColors.darkSubtext : AppColors.lightSubtext;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: surfaceColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          'Add $name?',
+          style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: isRegistered
+                    ? AppColors.paid.withValues(alpha: 0.1)
+                    : AppColors.error.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: isRegistered
+                      ? AppColors.paid.withValues(alpha: 0.4)
+                      : AppColors.error.withValues(alpha: 0.3),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    isRegistered
+                        ? Icons.verified_user_rounded
+                        : Icons.person_off_rounded,
+                    color: isRegistered ? AppColors.paid : AppColors.error,
+                    size: 28,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          isRegistered
+                              ? 'Registered on SplitEase'
+                              : 'Not registered',
+                          style: TextStyle(
+                            color: isRegistered
+                                ? AppColors.paid
+                                : AppColors.error,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          isRegistered
+                              ? (upiId != null
+                                    ? 'UPI: $upiId'
+                                    : 'No UPI ID linked')
+                              : 'They will receive an invite to join.',
+                          style: TextStyle(color: subColor, fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('Cancel', style: TextStyle(color: subColor)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            child: const Text(
+              'Add Member',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      _callAddMemberApi(name, phone);
     }
   }
 
@@ -345,10 +474,10 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
               onPressed: () {
                 Navigator.pop(context);
                 if (nameCtrl.text.isNotEmpty && phoneCtrl.text.isNotEmpty) {
-                  _callAddMemberApi(nameCtrl.text, phoneCtrl.text);
+                  _checkAndAddMember(nameCtrl.text, phoneCtrl.text);
                 }
               },
-              child: const Text('Add'),
+              child: const Text('Check & Add'),
             ),
           ],
         );
