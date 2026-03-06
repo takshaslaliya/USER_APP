@@ -162,6 +162,52 @@ class GroupService {
     );
   }
 
+  // 2b. Calculate Optimal Split (For multiple payers)
+  static Future<GroupResult> calculateOptimalSplit({
+    required double totalAmount,
+    required List<String> members,
+    required Map<String, double> payments,
+  }) async {
+    try {
+      final headers = await AuthService.getAuthHeaders();
+      final uri = Uri.parse('${AppConfig.apiBaseUrl}/split/calculate-split');
+      final response = await http
+          .post(
+            uri,
+            headers: headers,
+            body: jsonEncode({
+              'total_amount': totalAmount,
+              'members': members,
+              'payments': payments,
+            }),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      final decoded = jsonDecode(response.body);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return GroupResult(
+          success: true,
+          message: 'Split calculated successfully',
+          data: decoded,
+          statusCode: response.statusCode,
+        );
+      } else {
+        return GroupResult(
+          success: false,
+          message: decoded['message'] ?? 'Failed to calculate split',
+          statusCode: response.statusCode,
+        );
+      }
+    } catch (e) {
+      return GroupResult(
+        success: false,
+        message: 'Network error. Please try again.',
+        statusCode: 0,
+      );
+    }
+  }
+
   // 3. Get All Top-Level Groups (Created by User)
   static Future<GroupResult> fetchGroups() async {
     return _request('GET', '');
