@@ -49,6 +49,39 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
 
   bool _isLoading = false;
 
+  final Map<String, String> _phoneToNameCache = {};
+
+  String _normalize(String phone) {
+    String normalized = phone.replaceAll(RegExp(r'[\s\-()]'), '');
+    if (normalized.startsWith('+')) normalized = normalized.substring(1);
+    if (!normalized.startsWith('91') && normalized.length == 10) {
+      normalized = '91$normalized';
+    }
+    return normalized;
+  }
+
+  Future<String> _getNameFromPhone(String phone) async {
+    if (_phoneToNameCache.containsKey(phone)) return _phoneToNameCache[phone]!;
+
+    // Check local group members first
+    for (var m in widget.group.members) {
+      if (_normalize(m.phoneNumber ?? '') == phone) {
+        _phoneToNameCache[phone] = m.name;
+        return m.name;
+      }
+    }
+
+    // Call API fallback
+    final res = await AuthService.getMemberName(phone);
+    if (res.success && res.data != null) {
+      final name = res.data!['name'] as String? ?? phone;
+      _phoneToNameCache[phone] = name;
+      return name;
+    }
+
+    return phone;
+  }
+
   List<String> get _uniqueNames {
     final Set<String> seen = {};
     return widget.group.members
@@ -189,17 +222,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
         _snack('Please select at least one payer.');
         return false;
       }
-      final total = double.tryParse(_amountController.text) ?? 0;
-      double sum = 0;
-      for (var n in _groupPayerIds) {
-        sum += double.tryParse(_payerAmountControllers[n]?.text ?? '0') ?? 0;
-      }
-      if ((sum - total).abs() > 0.1) {
-        _snack(
-          'Payer amounts (₹${sum.toStringAsFixed(0)}) must equal expense total (₹${total.toStringAsFixed(0)}).',
-        );
-        return false;
-      }
+      // total amount is sum of payments in group mode
     }
 
     if (_selectedParticipants.isEmpty) {
@@ -264,27 +287,63 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
 
   Future<void> _addExpense() async {
     if (!_validate()) return;
-    final totalAmount = double.parse(_amountController.text);
 
     // ── Group Payment ──────────────────────────────────────────────
     if (_paymentType == 'Group Payment') {
       setState(() => _isLoading = true);
-      final Map<String, double> payments = {};
+      double calculatedTotal = 0;
+      final Map<String, double> paymentsByPhone = {};
+
       for (var name in _groupPayerIds) {
+        final member = widget.group.members.firstWhere((m) => m.name == name);
+        final phone = _normalize(member.phoneNumber ?? '');
         final amt =
             double.tryParse(_payerAmountControllers[name]?.text ?? '0') ?? 0;
-        if (amt > 0) payments[name] = amt;
+        if (amt > 0 && phone.isNotEmpty) {
+          paymentsByPhone[phone] = amt;
+          calculatedTotal += amt;
+        }
       }
+
+      if (calculatedTotal <= 0) {
+        setState(() => _isLoading = false);
+        _snack('Total amount must be greater than 0');
+        return;
+      }
+
+      final List<String> memberPhones = _selectedParticipants
+          .map((name) {
+            final member = widget.group.members.firstWhere(
+              (m) => m.name == name,
+            );
+            return _normalize(member.phoneNumber ?? '');
+          })
+          .where((p) => p.isNotEmpty)
+          .toList();
+
       final res = await GroupService.calculateOptimalSplit(
-        totalAmount: totalAmount,
-        members: _selectedParticipants,
-        payments: payments,
+        totalAmount: calculatedTotal,
+        members: memberPhones,
+        payments: paymentsByPhone,
       );
+
       if (!mounted) return;
-      setState(() => _isLoading = false);
+
       if (res.success) {
+        // Resolve names for transactions before showing
+        final transactions = res.data['transactions'] as List<dynamic>? ?? [];
+        final Set<String> allPhones = {};
+        for (var tx in transactions) {
+          allPhones.add(tx['from'] as String);
+          allPhones.add(tx['to'] as String);
+        }
+        for (var p in allPhones) {
+          await _getNameFromPhone(p);
+        }
+        setState(() => _isLoading = false);
         _showSettlementPlan(res.data);
       } else {
+        setState(() => _isLoading = false);
         _snack(res.message);
       }
       return;
@@ -292,6 +351,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
 
     // ── Solo Payment ───────────────────────────────────────────────
     setState(() => _isLoading = true);
+    final totalAmount = double.parse(_amountController.text);
     final participantData = _buildParticipantData(totalAmount);
     final upi = _soloPayerUpiController.text.trim();
     final result = await GroupService.createSubGroup(
@@ -385,26 +445,29 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                       validator: (v) =>
                           v!.isEmpty ? 'Enter expense name' : null,
                     ),
-                    Divider(color: borderColor),
-                    TextFormField(
-                      controller: _amountController,
-                      keyboardType: TextInputType.number,
-                      style: TextStyle(color: textColor),
-                      decoration: const InputDecoration(
-                        hintText: 'Amount (₹)',
-                        border: InputBorder.none,
-                        prefixIcon: Icon(
-                          Icons.currency_rupee_rounded,
-                          size: 20,
+                    if (_paymentType == 'Solo Payment') ...[
+                      Divider(color: borderColor),
+                      TextFormField(
+                        controller: _amountController,
+                        keyboardType: TextInputType.number,
+                        style: TextStyle(color: textColor),
+                        decoration: const InputDecoration(
+                          hintText: 'Amount (₹)',
+                          border: InputBorder.none,
+                          prefixIcon: Icon(
+                            Icons.currency_rupee_rounded,
+                            size: 20,
+                          ),
                         ),
+                        onChanged: (_) => setState(() {}),
+                        validator: (v) {
+                          if (v!.isEmpty) return 'Enter amount';
+                          if (double.tryParse(v) == null)
+                            return 'Invalid number';
+                          return null;
+                        },
                       ),
-                      onChanged: (_) => setState(() {}),
-                      validator: (v) {
-                        if (v!.isEmpty) return 'Enter amount';
-                        if (double.tryParse(v) == null) return 'Invalid number';
-                        return null;
-                      },
-                    ),
+                    ],
                   ],
                 ),
               ),
@@ -612,14 +675,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                           if (val) {
                             _groupPayerIds.add(name);
                             _selectedParticipants.remove(name);
-                            if (_groupPayerIds.length == 1) {
-                              _payerAmountControllers[name]?.text =
-                                  _amountController.text;
-                            } else {
-                              for (var p in _groupPayerIds) {
-                                _payerAmountControllers[p]?.text = '';
-                              }
-                            }
+                            // No longer auto-filling amount from _amountController as it might be hidden
                           } else {
                             _groupPayerIds.remove(name);
                             _payerAmountControllers[name]?.text = '';
@@ -629,11 +685,6 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                             if (!_selectedParticipants.contains(name)) {
                               _selectedParticipants.add(name);
                             }
-                            if (_groupPayerIds.length == 1) {
-                              _payerAmountControllers[_groupPayerIds.first]
-                                      ?.text =
-                                  _amountController.text;
-                            }
                           }
                         });
                         if (val) _checkGroupPayer(name);
@@ -641,7 +692,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                     );
                   }).toList(),
                 ),
-                if (_groupPayerIds.length > 1) ...[
+                if (_groupPayerIds.isNotEmpty) ...[
                   const SizedBox(height: 14),
                   _card(
                     surfaceColor,
@@ -810,17 +861,19 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                 const SizedBox(height: 24),
               ],
 
-              // ── Split Options ────────────────────────────────────────
-              _header('Split Options', textColor),
-              const SizedBox(height: 12),
-              _toggle(
-                options: ['Equal', 'Percentage', 'Custom'],
-                selected: _splitType,
-                surfaceColor: surfaceColor,
-                subColor: subColor,
-                onTap: (val) => setState(() => _splitType = val),
-              ),
-              const SizedBox(height: 24),
+              // ── Split Options (Solo Only) ──────────────────────────
+              if (_paymentType == 'Solo Payment') ...[
+                _header('Split Options', textColor),
+                const SizedBox(height: 12),
+                _toggle(
+                  options: ['Equal', 'Percentage', 'Custom'],
+                  selected: _splitType,
+                  surfaceColor: surfaceColor,
+                  subColor: subColor,
+                  onTap: (val) => setState(() => _splitType = val),
+                ),
+                const SizedBox(height: 24),
+              ],
 
               // ── Split Among ──────────────────────────────────────────
               Row(
@@ -868,58 +921,81 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                   borderColor,
                   Column(
                     children: [
-                      ..._selectedParticipants.map(
-                        (n) => Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      ..._selectedParticipants.map((n) {
+                        final controller = _percentControllers[n]!;
+                        double currentVal =
+                            double.tryParse(controller.text) ?? 0;
+                        // Clamp for slider safety
+                        double sliderVal = currentVal.clamp(0.0, 100.0);
+
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                n,
-                                style: TextStyle(
-                                  color: textColor,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              SizedBox(
-                                width: 90,
-                                child: TextField(
-                                  controller: _percentControllers[n],
-                                  keyboardType: TextInputType.number,
-                                  textAlign: TextAlign.right,
-                                  style: TextStyle(color: textColor),
-                                  decoration: InputDecoration(
-                                    hintText: '0',
-                                    hintStyle: TextStyle(color: subColor),
-                                    suffixText: '%',
-                                    suffixStyle: TextStyle(color: subColor),
-                                    border: UnderlineInputBorder(
-                                      borderSide: BorderSide(
-                                        color: AppColors.primary.withValues(
-                                          alpha: 0.4,
-                                        ),
-                                      ),
-                                    ),
-                                    enabledBorder: UnderlineInputBorder(
-                                      borderSide: BorderSide(
-                                        color: AppColors.primary.withValues(
-                                          alpha: 0.4,
-                                        ),
-                                      ),
-                                    ),
-                                    focusedBorder: UnderlineInputBorder(
-                                      borderSide: BorderSide(
-                                        color: AppColors.primary,
-                                      ),
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    n,
+                                    style: TextStyle(
+                                      color: textColor,
+                                      fontWeight: FontWeight.w600,
                                     ),
                                   ),
-                                  onChanged: (_) => setState(() {}),
+                                  SizedBox(
+                                    width: 70,
+                                    child: TextField(
+                                      controller: controller,
+                                      keyboardType: TextInputType.number,
+                                      textAlign: TextAlign.right,
+                                      style: TextStyle(
+                                        color: textColor,
+                                        fontSize: 13,
+                                      ),
+                                      decoration: InputDecoration(
+                                        hintText: '0',
+                                        isDense: true,
+                                        suffixText: '%',
+                                        border: UnderlineInputBorder(),
+                                      ),
+                                      onChanged: (val) {
+                                        setState(() {});
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              SliderTheme(
+                                data: SliderTheme.of(context).copyWith(
+                                  trackHeight: 2,
+                                  thumbShape: RoundSliderThumbShape(
+                                    enabledThumbRadius: 6,
+                                  ),
+                                  overlayShape: RoundSliderOverlayShape(
+                                    overlayRadius: 12,
+                                  ),
+                                ),
+                                child: Slider(
+                                  value: sliderVal,
+                                  min: 0,
+                                  max: 100,
+                                  activeColor: AppColors.primary,
+                                  inactiveColor: AppColors.primary.withValues(
+                                    alpha: 0.1,
+                                  ),
+                                  onChanged: (val) {
+                                    setState(() {
+                                      controller.text = val.toStringAsFixed(0);
+                                    });
+                                  },
                                 ),
                               ),
                             ],
                           ),
-                        ),
-                      ),
+                        );
+                      }),
                       Divider(color: borderColor),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1212,17 +1288,34 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
               else
                 ...transactions.map((tx) {
                   final amount = (tx['amount'] as num).toDouble();
+                  final fromPhone = tx['from'] as String;
+                  final toPhone = tx['to'] as String;
+                  final fromName = _phoneToNameCache[fromPhone] ?? fromPhone;
+                  final toName = _phoneToNameCache[toPhone] ?? toPhone;
+
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 14),
                     child: Row(
                       children: [
                         Expanded(
-                          child: Text(
-                            tx['from'] as String,
-                            style: TextStyle(
-                              color: AppColors.error,
-                              fontWeight: FontWeight.bold,
-                            ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                fromName,
+                                style: TextStyle(
+                                  color: AppColors.error,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Text(
+                                fromPhone,
+                                style: TextStyle(
+                                  color: AppColors.error.withValues(alpha: 0.6),
+                                  fontSize: 10,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                         Icon(
@@ -1231,13 +1324,26 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                           size: 18,
                         ),
                         Expanded(
-                          child: Text(
-                            tx['to'] as String,
-                            textAlign: TextAlign.end,
-                            style: TextStyle(
-                              color: AppColors.paid,
-                              fontWeight: FontWeight.bold,
-                            ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                toName,
+                                textAlign: TextAlign.end,
+                                style: TextStyle(
+                                  color: AppColors.paid,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Text(
+                                toPhone,
+                                textAlign: TextAlign.end,
+                                style: TextStyle(
+                                  color: AppColors.paid.withValues(alpha: 0.6),
+                                  fontSize: 10,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                         const SizedBox(width: 10),
