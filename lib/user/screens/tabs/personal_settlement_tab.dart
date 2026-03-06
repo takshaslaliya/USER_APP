@@ -58,6 +58,7 @@ class PersonalSettlementTab extends StatefulWidget {
 class _PersonalSettlementTabState extends State<PersonalSettlementTab> {
   List<PersonSettlement> _settlements = [];
   bool _isLoading = false;
+  String? _currentUserId;
   String? _currentUserName;
 
   @override
@@ -70,6 +71,7 @@ class _PersonalSettlementTabState extends State<PersonalSettlementTab> {
     setState(() => _isLoading = true);
     final user = await AuthService.getUser();
     if (!mounted) return;
+    _currentUserId = user?['id']?.toString();
     _currentUserName = user?['name']?.toString() ?? 'You';
     await _buildSettlements();
     if (mounted) setState(() => _isLoading = false);
@@ -97,8 +99,7 @@ class _PersonalSettlementTabState extends State<PersonalSettlementTab> {
 
     for (final group in allGroups) {
       for (final expense in group.expenses) {
-        // expense == sub_group; splits == each person's share
-        _processExpense(expense, accumulator);
+        _processExpense(group, expense, accumulator);
       }
     }
 
@@ -112,34 +113,91 @@ class _PersonalSettlementTabState extends State<PersonalSettlementTab> {
   }
 
   void _processExpense(
+    GroupModel group,
     ExpenseModel expense,
     Map<String, PersonSettlement> acc,
   ) {
-    // Each split in this expense contains: id (memberId), amount, isPaid
-    // paidById is the sub-group creator — we associate outstanding splits
-    // with the CURRENT USER owing others (they are listed in the splits).
-    for (final split in expense.splits) {
-      if (split.isPaid) continue; // already settled, skip
+    if (expense.splits.isEmpty) return;
 
-      // Use name as key (we don't always have phone in the split)
-      final key = split.name.trim().toLowerCase();
-      if (key == (_currentUserName?.toLowerCase() ?? '')) continue; // skip self
+    final isCurUserPayer = expense.paidById == _currentUserId;
 
-      acc.putIfAbsent(
-        key,
-        () => PersonSettlement(name: split.name, netAmount: 0, splitRefs: []),
-      );
+    if (isCurUserPayer) {
+      // Current user paid. Everyone else in the splits owes the current user.
+      for (final split in expense.splits) {
+        if (split.isPaid) continue;
 
-      // Current user owes this person → positive
-      acc[key]!.netAmount += split.amount;
-      acc[key]!.splitRefs.add(
-        _SplitRef(
-          subGroupId: expense.id,
-          memberId: split.id,
-          isPaid: split.isPaid,
-          amount: split.amount,
-        ),
-      );
+        final key = split.name.trim().toLowerCase();
+        if (key == (_currentUserName?.toLowerCase() ?? '')) {
+          continue; // Skip self
+        }
+
+        acc.putIfAbsent(
+          key,
+          () => PersonSettlement(name: split.name, netAmount: 0, splitRefs: []),
+        );
+
+        // They owe you -> negative
+        acc[key]!.netAmount -= split.amount;
+        acc[key]!.splitRefs.add(
+          _SplitRef(
+            subGroupId: expense.id,
+            memberId: split.id,
+            isPaid: split.isPaid,
+            amount: split.amount,
+          ),
+        );
+      }
+    } else {
+      // Someone else paid. Do we owe them?
+      final mySplit = expense.splits.where((s) {
+        return s.name.trim().toLowerCase() ==
+            (_currentUserName?.toLowerCase() ?? '');
+      }).firstOrNull;
+
+      if (mySplit != null && !mySplit.isPaid) {
+        // We owe the payer. Let's find their name.
+        String payerName = 'Unknown User';
+        final payerMember = group.members
+            .where(
+              (m) => m.userId == expense.paidById || m.id == expense.paidById,
+            )
+            .firstOrNull;
+
+        if (payerMember != null) {
+          payerName = payerMember.name;
+        } else if (expense.paidById == group.creatorId) {
+          final creatorMember = group.members
+              .where((m) => m.userId == group.creatorId)
+              .firstOrNull;
+          if (creatorMember != null) {
+            payerName = creatorMember.name;
+          }
+        }
+
+        if (payerName == 'Unknown User' && expense.paidById.length > 4) {
+          // Fallback UI string
+          payerName = 'User (${expense.paidById.substring(0, 4)})';
+        }
+
+        final key = payerName.trim().toLowerCase();
+        acc.putIfAbsent(
+          key,
+          () => PersonSettlement(name: payerName, netAmount: 0, splitRefs: []),
+        );
+
+        // You owe them -> positive
+        acc[key]!.netAmount += mySplit.amount;
+
+        // When we hit Settle, we are paying off OUR split, so the memberId is OUR split ID!
+        acc[key]!.splitRefs.add(
+          _SplitRef(
+            subGroupId: expense.id,
+            memberId: mySplit.id,
+            isPaid: mySplit.isPaid,
+            amount: mySplit.amount,
+          ),
+        );
+      }
     }
   }
 
