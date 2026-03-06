@@ -308,17 +308,16 @@ class GroupService {
     String groupId,
     String name,
     String phoneNumber,
-    double expenseAmount,
-  ) async {
-    return _request(
-      'POST',
-      '/$groupId/members',
-      body: {
-        'name': name,
-        'phone_number': phoneNumber,
-        'expense_amount': expenseAmount,
-      },
-    );
+    double expenseAmount, {
+    String? upiId,
+  }) async {
+    final body = {
+      'name': name,
+      'phone_number': phoneNumber,
+      'expense_amount': expenseAmount,
+      if (upiId != null && upiId.isNotEmpty) 'upi_id': upiId,
+    };
+    return _request('POST', '/$groupId/members', body: body);
   }
 
   // 8. Edit Member Expense (NEW)

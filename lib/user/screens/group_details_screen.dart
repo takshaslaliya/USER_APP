@@ -219,110 +219,167 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
         ? AppColors.darkSurface
         : AppColors.lightSurface;
     final subColor = isDark ? AppColors.darkSubtext : AppColors.lightSubtext;
+    final upiController = TextEditingController();
 
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: surfaceColor,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(
-          'Add $name?',
-          style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: isRegistered
-                    ? AppColors.paid.withValues(alpha: 0.1)
-                    : AppColors.error.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          backgroundColor: surfaceColor,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Text(
+            'Add $name?',
+            style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
                   color: isRegistered
-                      ? AppColors.paid.withValues(alpha: 0.4)
-                      : AppColors.error.withValues(alpha: 0.3),
+                      ? AppColors.paid.withValues(alpha: 0.1)
+                      : AppColors.error.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: isRegistered
+                        ? AppColors.paid.withValues(alpha: 0.4)
+                        : AppColors.error.withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      isRegistered
+                          ? Icons.verified_user_rounded
+                          : Icons.person_off_rounded,
+                      color: isRegistered ? AppColors.paid : AppColors.error,
+                      size: 28,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            isRegistered
+                                ? 'Registered on SplitEase'
+                                : 'Not registered',
+                            style: TextStyle(
+                              color: isRegistered
+                                  ? AppColors.paid
+                                  : AppColors.error,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            isRegistered
+                                ? (upiId != null
+                                      ? 'UPI: $upiId'
+                                      : 'No UPI ID linked')
+                                : 'They are not on SplitEase yet.',
+                            style: TextStyle(color: subColor, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              child: Row(
-                children: [
-                  Icon(
-                    isRegistered
-                        ? Icons.verified_user_rounded
-                        : Icons.person_off_rounded,
-                    color: isRegistered ? AppColors.paid : AppColors.error,
-                    size: 28,
+              // If NOT registered, show UPI input
+              if (!isRegistered) ...[
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 4,
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          isRegistered
-                              ? 'Registered on SplitEase'
-                              : 'Not registered',
-                          style: TextStyle(
-                            color: isRegistered
-                                ? AppColors.paid
-                                : AppColors.error,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          isRegistered
-                              ? (upiId != null
-                                    ? 'UPI: $upiId'
-                                    : 'No UPI ID linked')
-                              : 'They will receive an invite to join.',
-                          style: TextStyle(color: subColor, fontSize: 12),
-                        ),
-                      ],
+                  decoration: BoxDecoration(
+                    color: isDark ? AppColors.darkBg : AppColors.lightBg,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isDark
+                          ? AppColors.darkSurfaceVariant
+                          : AppColors.lightSurfaceVariant,
                     ),
                   ),
-                ],
+                  child: TextField(
+                    controller: upiController,
+                    style: TextStyle(color: textColor, fontSize: 14),
+                    decoration: InputDecoration(
+                      border: InputBorder.none,
+                      hintText: 'Enter UPI ID (e.g. name@upi)',
+                      hintStyle: TextStyle(color: subColor, fontSize: 13),
+                      prefixIcon: Icon(
+                        Icons.account_balance_wallet_rounded,
+                        color: AppColors.primary,
+                        size: 18,
+                      ),
+                      isDense: true,
+                    ),
+                    onChanged: (v) => setDialogState(() {}),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Optional — used for payment tracking',
+                  style: TextStyle(color: subColor, fontSize: 11),
+                ),
+              ],
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text('Cancel', style: TextStyle(color: subColor)),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              child: const Text(
+                'Add Member',
+                style: TextStyle(color: Colors.white),
               ),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text('Cancel', style: TextStyle(color: subColor)),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-            child: const Text(
-              'Add Member',
-              style: TextStyle(color: Colors.white),
-            ),
-          ),
-        ],
       ),
     );
 
     if (confirmed == true) {
-      _callAddMemberApi(name, phone);
+      _callAddMemberApi(
+        name,
+        phone,
+        upiId: upiController.text.trim().isEmpty
+            ? null
+            : upiController.text.trim(),
+      );
     }
+    upiController.dispose();
   }
 
-  Future<void> _callAddMemberApi(String name, String phone) async {
+  Future<void> _callAddMemberApi(
+    String name,
+    String phone, {
+    String? upiId,
+  }) async {
     setState(() => _isLoading = true);
     final res = await GroupService.addMember(
       _group.id,
       name,
       phone,
       0.0, // Initial expense amount is 0
+      upiId: upiId,
     );
     if (!mounted) return;
     setState(() => _isLoading = false);
