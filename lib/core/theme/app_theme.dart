@@ -260,11 +260,14 @@ class AppTheme {
 }
 
 class ThemeProvider extends ChangeNotifier {
-  bool _isDark = false;
-  bool get isDark => _isDark;
+  ThemeMode _themeMode = ThemeMode.system;
+  ThemeMode get themeMode => _themeMode;
 
-  ThemeProvider({bool? initialIsDark, String? initialThemeName}) {
-    if (initialIsDark != null) _isDark = initialIsDark;
+  bool get isDark => _themeMode == ThemeMode.dark;
+  bool get isSystem => _themeMode == ThemeMode.system;
+
+  ThemeProvider({ThemeMode? initialMode, String? initialThemeName}) {
+    if (initialMode != null) _themeMode = initialMode;
     if (initialThemeName != null) {
       setThemeColor(initialThemeName, save: false);
     } else {
@@ -275,7 +278,15 @@ class ThemeProvider extends ChangeNotifier {
   Future<void> _loadSettings() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      _isDark = prefs.getBool('isDark') ?? false;
+
+      final modeStr = prefs.getString('themeMode') ?? 'system';
+      if (modeStr == 'dark')
+        _themeMode = ThemeMode.dark;
+      else if (modeStr == 'light')
+        _themeMode = ThemeMode.light;
+      else
+        _themeMode = ThemeMode.system;
+
       final savedTheme = prefs.getString('themeName') ?? 'purple';
       setThemeColor(savedTheme, save: false);
     } catch (e) {
@@ -286,15 +297,32 @@ class ThemeProvider extends ChangeNotifier {
   Future<void> _saveSettings() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool('isDark', _isDark);
+
+      String modeStr = 'system';
+      if (_themeMode == ThemeMode.dark)
+        modeStr = 'dark';
+      else if (_themeMode == ThemeMode.light)
+        modeStr = 'light';
+
+      await prefs.setString('themeMode', modeStr);
       await prefs.setString('themeName', AppColors.currentThemeName);
     } catch (e) {
       debugPrint('Error saving theme settings: $e');
     }
   }
 
+  void setThemeMode(ThemeMode mode) {
+    _themeMode = mode;
+    _saveSettings();
+    notifyListeners();
+  }
+
   void toggle() {
-    _isDark = !_isDark;
+    if (_themeMode == ThemeMode.dark) {
+      _themeMode = ThemeMode.light;
+    } else {
+      _themeMode = ThemeMode.dark;
+    }
     _saveSettings();
     notifyListeners();
   }

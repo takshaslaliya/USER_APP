@@ -19,11 +19,17 @@ void main() async {
 
   // Load theme settings before app launch
   final prefs = await SharedPreferences.getInstance();
-  final initialIsDark = prefs.getBool('isDark') ?? false;
+  final modeStr = prefs.getString('themeMode') ?? 'system';
+  ThemeMode initialMode = ThemeMode.system;
+  if (modeStr == 'dark')
+    initialMode = ThemeMode.dark;
+  else if (modeStr == 'light')
+    initialMode = ThemeMode.light;
+
   final initialThemeName = prefs.getString('themeName') ?? 'purple';
 
   final themeProvider = ThemeProvider(
-    initialIsDark: initialIsDark,
+    initialMode: initialMode,
     initialThemeName: initialThemeName,
   );
 
@@ -59,7 +65,7 @@ class SplitEaseApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
-      themeMode: themeProvider.isDark ? ThemeMode.dark : ThemeMode.light,
+      themeMode: themeProvider.themeMode,
       initialRoute: initialRoute,
       onGenerateRoute: (settings) {
         Widget page;

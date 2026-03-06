@@ -8,10 +8,10 @@ import 'package:splitease_test/core/theme/app_theme.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:splitease_test/shared/utils/notification_helper.dart';
 import 'package:splitease_test/core/providers/data_refresh_provider.dart';
 import 'dart:async';
+import 'dart:convert';
 
 class SettingsTab extends StatefulWidget {
   const SettingsTab({super.key});
@@ -24,14 +24,12 @@ class _SettingsTabState extends State<SettingsTab> {
   bool _isWhatsAppLinked = false;
   UserModel? _user;
   bool _isLoading = false;
-  String? _profileImagePath;
   Timer? _refreshTimer;
 
   @override
   void initState() {
     super.initState();
     _loadUser();
-    _loadProfileImage();
 
     // Handle global refresh signal
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -55,15 +53,6 @@ class _SettingsTabState extends State<SettingsTab> {
       context.read<DataRefreshProvider>().removeListener(_loadUser);
     } catch (_) {}
     super.dispose();
-  }
-
-  Future<void> _loadProfileImage() async {
-    final prefs = await SharedPreferences.getInstance();
-    if (mounted) {
-      setState(() {
-        _profileImagePath = prefs.getString('profile_image_path');
-      });
-    }
   }
 
   Future<void> _loadUser({bool isPolling = false}) async {
@@ -120,7 +109,6 @@ class _SettingsTabState extends State<SettingsTab> {
             if (res.success && res.data != null) {
               context.read<DataRefreshProvider>().signalRefresh();
               _user = UserModel.fromJson(res.data!);
-              _profileImagePath = image.path;
               NotificationHelper.showSuccess(
                 context,
                 'Profile picture updated successfully!',
@@ -472,24 +460,7 @@ class _SettingsTabState extends State<SettingsTab> {
                         ),
                       ],
                     ),
-                    child: _profileImagePath != null
-                        ? ClipRRect(
-                            borderRadius: BorderRadius.circular(32),
-                            child: Image.file(
-                              File(_profileImagePath!),
-                              fit: BoxFit.cover,
-                            ),
-                          )
-                        : Center(
-                            child: Text(
-                              initials,
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 32,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
+                    child: _buildProfileImage(initials),
                   ),
                   Container(
                     padding: EdgeInsets.all(6),
@@ -784,9 +755,21 @@ class _SettingsTabState extends State<SettingsTab> {
             ),
             SizedBox(height: 16),
 
-            // Theme Toggle
+            // Appearance Section
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Appearance',
+                style: TextStyle(
+                  color: textColor,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            SizedBox(height: 12),
             Container(
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: EdgeInsets.all(4),
               decoration: BoxDecoration(
                 color: surfaceColor,
                 borderRadius: BorderRadius.circular(20),
@@ -798,35 +781,23 @@ class _SettingsTabState extends State<SettingsTab> {
               ),
               child: Row(
                 children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: isDark ? AppColors.darkBg : AppColors.lightBg,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(
-                      isDark
-                          ? Icons.dark_mode_rounded
-                          : Icons.light_mode_rounded,
-                      color: AppColors.primary,
-                      size: 20,
-                    ),
+                  _AppearanceOption(
+                    label: 'System',
+                    mode: ThemeMode.system,
+                    provider: themeProvider,
+                    isDark: isDark,
                   ),
-                  SizedBox(width: 16),
-                  Text(
-                    'Dark Mode',
-                    style: TextStyle(
-                      color: textColor,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
+                  _AppearanceOption(
+                    label: 'Light',
+                    mode: ThemeMode.light,
+                    provider: themeProvider,
+                    isDark: isDark,
                   ),
-                  const Spacer(),
-                  Switch(
-                    value: isDark,
-                    onChanged: (val) => themeProvider.toggle(),
-                    activeThumbColor: AppColors.primary,
+                  _AppearanceOption(
+                    label: 'Dark',
+                    mode: ThemeMode.dark,
+                    provider: themeProvider,
+                    isDark: isDark,
                   ),
                 ],
               ),
@@ -869,6 +840,53 @@ class _SettingsTabState extends State<SettingsTab> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProfileImage(String initials) {
+    if (_user?.profilePhotoUrl != null && _user!.profilePhotoUrl!.isNotEmpty) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(32),
+        child: Image.network(
+          _user!.profilePhotoUrl!,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) =>
+              _buildInitials(initials),
+        ),
+      );
+    }
+
+    if (_user?.profilePhotoBase64 != null &&
+        _user!.profilePhotoBase64!.isNotEmpty) {
+      try {
+        final base64String = _user!.profilePhotoBase64!.split(',').last;
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(32),
+          child: Image.memory(
+            base64Decode(base64String),
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) =>
+                _buildInitials(initials),
+          ),
+        );
+      } catch (e) {
+        return _buildInitials(initials);
+      }
+    }
+
+    return _buildInitials(initials);
+  }
+
+  Widget _buildInitials(String initials) {
+    return Center(
+      child: Text(
+        initials,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 32,
+          fontWeight: FontWeight.w700,
         ),
       ),
     );
@@ -979,6 +997,51 @@ class _ThemeCircle extends StatelessWidget {
                 offset: const Offset(0, 4),
               ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AppearanceOption extends StatelessWidget {
+  final String label;
+  final ThemeMode mode;
+  final ThemeProvider provider;
+  final bool isDark;
+
+  const _AppearanceOption({
+    required this.label,
+    required this.mode,
+    required this.provider,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    bool isSelected = provider.themeMode == mode;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => provider.setThemeMode(mode),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          margin: EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+          padding: EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: isSelected ? AppColors.primary : Colors.transparent,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Center(
+            child: Text(
+              label,
+              style: TextStyle(
+                color: isSelected
+                    ? Colors.white
+                    : (isDark ? AppColors.darkSubtext : AppColors.lightSubtext),
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                fontSize: 14,
+              ),
+            ),
+          ),
         ),
       ),
     );
