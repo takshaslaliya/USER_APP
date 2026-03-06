@@ -551,13 +551,6 @@ class _PersonalSettlementTabState extends State<PersonalSettlementTab> {
                     ],
                   ),
                 ),
-                IconButton(
-                  onPressed: () => _showGroupDetails(s),
-                  icon: Icon(
-                    Icons.info_outline_rounded,
-                    color: isDark ? Colors.white38 : Colors.black38,
-                  ),
-                ),
               ],
             ),
           ),
@@ -584,9 +577,14 @@ class _PersonalSettlementTabState extends State<PersonalSettlementTab> {
                     _buildAmountInfo(
                       'Net Total',
                       s.netAmount,
-                      AppColors.primary,
+                      s.netAmount < -0.01
+                          ? Colors.red
+                          : (s.netAmount > 0.01
+                                ? Colors.green
+                                : AppColors.primary),
                       isDark,
                       isBold: true,
+                      showSign: true,
                     ),
                   ],
                 ),
@@ -594,31 +592,44 @@ class _PersonalSettlementTabState extends State<PersonalSettlementTab> {
                   const SizedBox(height: 16),
                   Row(
                     children: [
+                      // View Settle button - Always visible
                       Expanded(
-                        child: ElevatedButton(
-                          onPressed: () => _sendNotification(s),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: isDark
-                                ? Colors.white.withOpacity(0.05)
-                                : Colors.grey.withOpacity(0.05),
-                            elevation: 0,
-                            foregroundColor: AppColors.primary,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                        child: _buildSecondaryButton(
+                          label: 'View Settle',
+                          onTap: () => _showGroupDetails(s),
+                          isDark: isDark,
+                        ),
+                      ),
+
+                      // Settle Instantly - Only show if current user is a net debtor
+                      if (s.netAmount < -0.01) ...[
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () => _sendNotification(s),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              elevation: 0,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                             ),
-                          ),
-                          child: const Text(
-                            'Settle Instantly',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
+                            child: const Text(
+                              'Settle Instantly',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                         ),
-                      ),
+                      ],
+
+                      // Paid button - Only show if they owe us money
                       if (s.theyOweYou > 0) ...[
-                        const SizedBox(width: 12),
+                        const SizedBox(width: 8),
                         _buildActionButton(
                           label: 'Paid',
                           color: Colors.green,
@@ -657,13 +668,46 @@ class _PersonalSettlementTabState extends State<PersonalSettlementTab> {
     );
   }
 
+  Widget _buildSecondaryButton({
+    required String label,
+    required VoidCallback onTap,
+    required bool isDark,
+  }) {
+    return ElevatedButton(
+      onPressed: onTap,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: isDark
+            ? Colors.white.withOpacity(0.05)
+            : Colors.grey.withOpacity(0.05),
+        elevation: 0,
+        foregroundColor: isDark ? Colors.white70 : Colors.black87,
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(
+            color: isDark ? Colors.white10 : Colors.black12,
+            width: 1,
+          ),
+        ),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+      ),
+    );
+  }
+
   Widget _buildAmountInfo(
     String label,
     double amount,
     Color color,
     bool isDark, {
     bool isBold = false,
+    bool showSign = false,
   }) {
+    final String displayAmount = amount.abs().toStringAsFixed(0);
+    final String sign = showSign && amount < 0 ? '-' : '';
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -678,7 +722,7 @@ class _PersonalSettlementTabState extends State<PersonalSettlementTab> {
         ),
         const SizedBox(height: 2),
         Text(
-          '₹${amount.abs().toStringAsFixed(0)}',
+          '$sign₹$displayAmount',
           style: TextStyle(
             fontSize: 15,
             fontWeight: isBold ? FontWeight.w800 : FontWeight.w600,
