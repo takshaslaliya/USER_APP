@@ -80,4 +80,9 @@ class WhatsAppService {
       body: {'requests': requests, 'message': message},
     );
   }
+
+  /// 5. Send group reminder for consolidated split
+  static Future<WhatsAppResult> remindGroup(String groupId) async {
+    return _request('POST', '/remind-group', body: {'group_id': groupId});
+  }
 }

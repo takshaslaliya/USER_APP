@@ -47,28 +47,47 @@ class GroupModel {
     List<ExpenseModel> parsedExpenses = [];
     if (json['sub_groups'] != null && json['sub_groups'] is List) {
       parsedExpenses = (json['sub_groups'] as List).map((sg) {
+        // Handle both old and new split formats
+        final String sgName = sg['expense_name'] ?? sg['name'] ?? 'Sub-group';
+        final double sgAmount =
+            (sg['total_amount'] ?? sg['total_expense'] ?? 0.0).toDouble();
+
+        // Members list can now be in 'transactions' or 'members'
+        List<MemberSplit> splits = [];
+        if (sg['transactions'] != null && sg['transactions'] is List) {
+          splits = (sg['transactions'] as List).map((tx) {
+            return MemberSplit(
+              id: tx['id']?.toString() ?? tx['from']?.toString() ?? '',
+              name:
+                  tx['from_name']?.toString() ??
+                  tx['from']?.toString() ??
+                  'Unknown',
+              amount: (tx['amount'] ?? 0.0).toDouble(),
+              isPaid: tx['is_paid'] ?? false,
+            );
+          }).toList();
+        } else if (sg['members'] != null &&
+            sg['members'] is List &&
+            sg['members'].first is Map) {
+          splits = (sg['members'] as List).map((m) {
+            return MemberSplit(
+              id: m['id']?.toString() ?? '',
+              name: m['name']?.toString() ?? 'Unknown',
+              amount: (m['expense_amount'] ?? 0.0).toDouble(),
+              isPaid: m['is_paid'] ?? false,
+            );
+          }).toList();
+        }
+
         return ExpenseModel(
-          id: sg['id'] ?? '',
-          title: sg['name'] ?? 'Sub-group',
-          amount: (sg['total_expense'] ?? 0.0) is int
-              ? (sg['total_expense'] as int).toDouble()
-              : (sg['total_expense'] ?? 0.0).toDouble(),
-          paidById: sg['created_by'] ?? 'unknown',
+          id: sg['id']?.toString() ?? '',
+          title: sgName,
+          amount: sgAmount,
+          paidById: sg['created_by']?.toString() ?? 'unknown',
           date: sg['created_at'] != null
               ? DateTime.tryParse(sg['created_at']) ?? DateTime.now()
               : DateTime.now(),
-          splits: (sg['members'] != null && sg['members'] is List)
-              ? (sg['members'] as List).map((m) {
-                  return MemberSplit(
-                    id: m['id'] ?? '',
-                    name: m['name'] ?? 'Unknown',
-                    amount: (m['expense_amount'] ?? 0.0) is int
-                        ? (m['expense_amount'] as int).toDouble()
-                        : (m['expense_amount'] ?? 0.0).toDouble(),
-                    isPaid: m['is_paid'] ?? false,
-                  );
-                }).toList()
-              : [],
+          splits: splits,
         );
       }).toList();
     }

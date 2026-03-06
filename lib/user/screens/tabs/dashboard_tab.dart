@@ -3,6 +3,7 @@ import 'package:splitease_test/core/theme/app_theme.dart';
 import 'package:splitease_test/core/services/dashboard_service.dart';
 import 'package:splitease_test/core/services/group_service.dart';
 import 'package:splitease_test/core/models/group_model.dart';
+import 'package:splitease_test/user/screens/notification_screen.dart';
 
 import 'dart:io';
 import 'dart:convert';
@@ -197,15 +198,52 @@ class _DashboardTabState extends State<DashboardTab> {
                           height: 40,
                           fit: BoxFit.contain,
                         ),
-                        if (_isDashboardLoading)
-                          SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: AppColors.primary,
+                        Row(
+                          children: [
+                            if (_isDashboardLoading)
+                              SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                            const SizedBox(width: 12),
+                            GestureDetector(
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const NotificationScreen(),
+                                  ),
+                                );
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: isDark
+                                      ? AppColors.darkSurface
+                                      : AppColors.lightSurface,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: isDark
+                                        ? AppColors.darkSurfaceVariant
+                                        : AppColors.lightSurfaceVariant,
+                                  ),
+                                ),
+                                child: Icon(
+                                  Icons.notifications_outlined,
+                                  color: isDark
+                                      ? AppColors.darkText
+                                      : AppColors.lightText,
+                                  size: 20,
+                                ),
+                              ),
                             ),
-                          ),
+                          ],
+                        ),
                       ],
                     ),
                   ),

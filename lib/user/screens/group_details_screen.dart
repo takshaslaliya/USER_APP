@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:image_picker/image_picker.dart';
@@ -520,6 +521,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
             children: [
               TextField(
                 controller: nameCtrl,
+                inputFormatters: [LengthLimitingTextInputFormatter(25)],
                 style: TextStyle(color: textColor),
                 decoration: InputDecoration(
                   hintText: 'Name',

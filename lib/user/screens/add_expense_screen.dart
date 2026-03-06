@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:splitease_test/core/models/group_model.dart';
 import 'package:splitease_test/core/theme/app_theme.dart';
 import 'package:splitease_test/shared/widgets/app_button.dart';
@@ -508,6 +509,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                     TextFormField(
                       controller: _nameController,
                       style: TextStyle(color: textColor),
+                      inputFormatters: [LengthLimitingTextInputFormatter(25)],
                       decoration: const InputDecoration(
                         hintText: 'Expense name (e.g. Dinner, Cab)',
                         border: InputBorder.none,
@@ -522,6 +524,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                         keyboardType: const TextInputType.numberWithOptions(
                           decimal: true,
                         ),
+                        inputFormatters: [LengthLimitingTextInputFormatter(7)],
                         style: TextStyle(color: textColor),
                         decoration: const InputDecoration(
                           hintText: 'Amount (₹)',
@@ -803,6 +806,9 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                                           const TextInputType.numberWithOptions(
                                             decimal: true,
                                           ),
+                                      inputFormatters: [
+                                        LengthLimitingTextInputFormatter(7),
+                                      ],
                                       textAlign: TextAlign.right,
                                       style: TextStyle(color: textColor),
                                       decoration: InputDecoration(
@@ -1028,6 +1034,9 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                                           const TextInputType.numberWithOptions(
                                             decimal: true,
                                           ),
+                                      inputFormatters: [
+                                        LengthLimitingTextInputFormatter(7),
+                                      ],
                                       textAlign: TextAlign.right,
                                       style: TextStyle(
                                         color: textColor,
@@ -1141,6 +1150,9 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                                       const TextInputType.numberWithOptions(
                                         decimal: true,
                                       ),
+                                  inputFormatters: [
+                                    LengthLimitingTextInputFormatter(7),
+                                  ],
                                   textAlign: TextAlign.right,
                                   style: TextStyle(color: textColor),
                                   decoration: InputDecoration(

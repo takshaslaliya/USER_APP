@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:splitease_test/core/models/expense_model.dart';
 import 'package:splitease_test/core/models/group_model.dart';
 import 'package:splitease_test/core/services/group_service.dart';
@@ -42,18 +43,55 @@ class _ExpenseDetailsScreenState extends State<ExpenseDetailsScreen> {
 
   Future<void> _refreshExpense() async {
     setState(() => _isLoading = true);
-    final res = await GroupService.fetchGroupDetails(widget.group.id);
+    final res = await GroupService.fetchSplitDetails(_expense.id);
+
     if (mounted) {
       setState(() {
         _isLoading = false;
         if (res.success && res.data != null) {
-          final group = GroupModel.fromJson(res.data);
-          try {
-            _expense = group.expenses.firstWhere((e) => e.id == _expense.id);
-          } catch (e) {
-            // Expense might have been deleted, just pop
-            Navigator.pop(context, true);
+          final sg = res.data;
+          // Handle both old and new split formats
+          final String sgName =
+              sg['expense_name'] ?? sg['name'] ?? 'Split Details';
+          final double sgAmount =
+              (sg['total_amount'] ?? sg['total_expense'] ?? 0.0).toDouble();
+
+          List<MemberSplit> splits = [];
+          if (sg['transactions'] != null && sg['transactions'] is List) {
+            splits = (sg['transactions'] as List).map((tx) {
+              return MemberSplit(
+                id: tx['id']?.toString() ?? tx['from']?.toString() ?? '',
+                name:
+                    tx['from_name']?.toString() ??
+                    tx['from']?.toString() ??
+                    'Unknown',
+                amount: (tx['amount'] ?? 0.0).toDouble(),
+                isPaid: tx['is_paid'] ?? false,
+              );
+            }).toList();
+          } else if (sg['members'] != null &&
+              sg['members'] is List &&
+              sg['members'].first is Map) {
+            splits = (sg['members'] as List).map((m) {
+              return MemberSplit(
+                id: m['id']?.toString() ?? '',
+                name: m['name']?.toString() ?? 'Unknown',
+                amount: (m['expense_amount'] ?? 0.0).toDouble(),
+                isPaid: m['is_paid'] ?? false,
+              );
+            }).toList();
           }
+
+          _expense = ExpenseModel(
+            id: sg['id']?.toString() ?? _expense.id,
+            title: sgName,
+            amount: sgAmount,
+            paidById: sg['created_by']?.toString() ?? 'unknown',
+            date: sg['created_at'] != null
+                ? DateTime.tryParse(sg['created_at']) ?? DateTime.now()
+                : DateTime.now(),
+            splits: splits,
+          );
         }
       });
     }
@@ -61,16 +99,39 @@ class _ExpenseDetailsScreenState extends State<ExpenseDetailsScreen> {
 
   Future<void> _togglePaid(MemberSplit split) async {
     setState(() => _isLoading = true);
-    final res = await GroupService.toggleMemberPaidStatus(
-      _expense.id,
+    final res = await GroupService.updateSplitTransaction(
       split.id,
-      !split.isPaid,
+      isPaid: !split.isPaid,
     );
 
     if (mounted) {
       setState(() => _isLoading = false);
       if (res.success) {
         _refreshExpense();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(res.message),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _sendGroupReminder() async {
+    setState(() => _isLoading = true);
+    final res = await WhatsAppService.remindGroup(_expense.id);
+
+    if (mounted) {
+      setState(() => _isLoading = false);
+      if (res.success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(res.message),
+            backgroundColor: AppColors.whatsapp,
+          ),
+        );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -321,6 +382,7 @@ class _ExpenseDetailsScreenState extends State<ExpenseDetailsScreen> {
             children: [
               TextField(
                 controller: nameController,
+                inputFormatters: [LengthLimitingTextInputFormatter(25)],
                 decoration: InputDecoration(
                   labelText: 'Name',
                   labelStyle: TextStyle(color: AppColors.primary),
@@ -330,10 +392,11 @@ class _ExpenseDetailsScreenState extends State<ExpenseDetailsScreen> {
                 ),
                 style: TextStyle(color: textColor),
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
               TextField(
                 controller: amountController,
                 keyboardType: TextInputType.number,
+                inputFormatters: [LengthLimitingTextInputFormatter(7)],
                 decoration: InputDecoration(
                   labelText: 'Amount (₹)',
                   labelStyle: TextStyle(color: AppColors.primary),
@@ -407,9 +470,6 @@ class _ExpenseDetailsScreenState extends State<ExpenseDetailsScreen> {
 
     final isCreator = widget.group.creatorId == _currentUserId;
 
-    final paidByName = _expense.paidById == 'me' ? 'You' : 'Group Member';
-    final initials = paidByName.substring(0, 1).toUpperCase();
-
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBg : AppColors.lightBg,
       appBar: AppBar(
@@ -430,12 +490,17 @@ class _ExpenseDetailsScreenState extends State<ExpenseDetailsScreen> {
         elevation: 0,
         iconTheme: IconThemeData(color: textColor),
         actions: [
+          IconButton(
+            icon: Icon(Icons.forum_rounded, color: AppColors.whatsapp),
+            tooltip: 'Remind Entire Group',
+            onPressed: _sendGroupReminder,
+          ),
           if (widget.group.creatorId == _currentUserId ||
               _expense.paidById == _currentUserId ||
               _expense.paidById == 'me')
             IconButton(
               icon: Icon(Icons.delete_outline_rounded, color: AppColors.error),
-              tooltip: 'Delete Expense Group',
+              tooltip: 'Delete Split',
               onPressed: () {
                 final messenger = ScaffoldMessenger.of(context);
                 final screenContext = context;
@@ -466,7 +531,7 @@ class _ExpenseDetailsScreenState extends State<ExpenseDetailsScreen> {
                         onPressed: () async {
                           Navigator.pop(dialogContext); // Close dialog
                           setState(() => _isLoading = true);
-                          final res = await GroupService.deleteSubGroup(
+                          final res = await GroupService.deleteSplit(
                             _expense.id,
                           );
 
@@ -574,72 +639,6 @@ class _ExpenseDetailsScreenState extends State<ExpenseDetailsScreen> {
                           ),
                         ),
                       ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            SizedBox(height: 32),
-
-            // Paid By Section
-            Text(
-              'Paid By',
-              style: TextStyle(
-                color: textColor,
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            SizedBox(height: 12),
-            Container(
-              padding: EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: surfaceColor,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: isDark
-                      ? AppColors.darkSurfaceVariant
-                      : AppColors.lightSurfaceVariant,
-                ),
-              ),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    backgroundColor: AppColors.primary,
-                    child: Text(
-                      initials,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          paidByName,
-                          style: TextStyle(
-                            color: textColor,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        Text(
-                          '@${paidByName.toLowerCase().replaceAll(' ', '')}',
-                          style: TextStyle(color: subColor, fontSize: 13),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Text(
-                    '₹${_expense.amount.toStringAsFixed(0)}',
-                    style: TextStyle(
-                      color: AppColors.primary,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ],

@@ -170,7 +170,7 @@ class GroupService {
   }) async {
     try {
       final headers = await AuthService.getAuthHeaders();
-      final uri = Uri.parse('${AppConfig.apiBaseUrl}/split/calculate-split');
+      final uri = Uri.parse('${AppConfig.splitUrl}/calculate-split');
       final response = await http
           .post(
             uri,
@@ -220,7 +220,7 @@ class GroupService {
   }) async {
     try {
       final headers = await AuthService.getAuthHeaders();
-      final uri = Uri.parse('${AppConfig.apiBaseUrl}/split/update-split');
+      final uri = Uri.parse('${AppConfig.splitUrl}/update-split');
       final response = await http
           .post(
             uri,
@@ -259,6 +259,81 @@ class GroupService {
         message: 'Network error: $e',
         statusCode: 0,
       );
+    }
+  }
+
+  // 2d. Get Split Details (Consolidated)
+  static Future<GroupResult> fetchSplitDetails(String splitId) async {
+    try {
+      final headers = await AuthService.getAuthHeaders();
+      final uri = Uri.parse('${AppConfig.splitUrl}/$splitId');
+      final response = await http
+          .get(uri, headers: headers)
+          .timeout(const Duration(seconds: 15));
+
+      final decoded = jsonDecode(response.body);
+      return GroupResult(
+        success: decoded['success'] == true,
+        message: decoded['message'] ?? '',
+        data: decoded['data'],
+        statusCode: response.statusCode,
+      );
+    } catch (e) {
+      return GroupResult(success: false, message: 'Network error: $e');
+    }
+  }
+
+  // 2e. Update Transaction status/amount
+  static Future<GroupResult> updateSplitTransaction(
+    String memberId, {
+    double? amount,
+    bool? isPaid,
+    String? name,
+  }) async {
+    try {
+      final headers = await AuthService.getAuthHeaders();
+      final uri = Uri.parse('${AppConfig.splitUrl}/transaction/$memberId');
+      final response = await http
+          .put(
+            uri,
+            headers: headers,
+            body: jsonEncode({
+              if (amount != null) 'expense_amount': amount,
+              if (isPaid != null) 'is_paid': isPaid,
+              if (name != null) 'name': name,
+            }),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      final decoded = jsonDecode(response.body);
+      return GroupResult(
+        success: decoded['success'] == true,
+        message: decoded['message'] ?? '',
+        data: decoded,
+        statusCode: response.statusCode,
+      );
+    } catch (e) {
+      return GroupResult(success: false, message: 'Network error: $e');
+    }
+  }
+
+  // 2f. Delete Consolidated Split
+  static Future<GroupResult> deleteSplit(String splitId) async {
+    try {
+      final headers = await AuthService.getAuthHeaders();
+      final uri = Uri.parse('${AppConfig.splitUrl}/$splitId');
+      final response = await http
+          .delete(uri, headers: headers)
+          .timeout(const Duration(seconds: 15));
+
+      final decoded = jsonDecode(response.body);
+      return GroupResult(
+        success: decoded['success'] == true,
+        message: decoded['message'] ?? '',
+        statusCode: response.statusCode,
+      );
+    } catch (e) {
+      return GroupResult(success: false, message: 'Network error: $e');
     }
   }
 
