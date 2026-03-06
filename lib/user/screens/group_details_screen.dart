@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:image_picker/image_picker.dart';
@@ -105,7 +106,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
           return;
         }
 
-        _callAddMemberApi(name, phone);
+        _checkAndAddMember(name, phone, skipDialog: true);
       }
     } else {
       if (!mounted) return;
@@ -187,13 +188,223 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
     }
   }
 
-  Future<void> _callAddMemberApi(String name, String phone) async {
+  Future<void> _checkAndAddMember(
+    String name,
+    String phone, {
+    bool skipDialog = false,
+  }) async {
+    // Normalize phone to E.164 (91XXXXXXXXXX format)
+    String normalized = phone.replaceAll(RegExp(r'[\s\-()]'), '');
+    if (normalized.startsWith('+')) normalized = normalized.substring(1);
+    if (!normalized.startsWith('91') && normalized.length == 10) {
+      normalized = '91$normalized';
+    }
+
+    setState(() => _isLoading = true);
+    final statusRes = await AuthService.checkUserStatus(normalized);
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    // Parse result — handle bool, string "true"/"false", and missing key robustly
+    bool isRegistered = false;
+    String? upiId;
+    if (statusRes.data != null) {
+      final raw = statusRes.data!['is_register'];
+      isRegistered = (raw == true) || (raw?.toString().toLowerCase() == 'true');
+      final rawUpi = statusRes.data!['upi_id'];
+      if (rawUpi != null &&
+          rawUpi != false &&
+          rawUpi.toString().isNotEmpty &&
+          rawUpi.toString() != 'false') {
+        upiId = rawUpi.toString();
+      }
+    }
+
+    if (skipDialog) {
+      _callAddMemberApi(name, normalized, upiId: upiId);
+      return;
+    }
+
+    // Show status dialog before adding
+    if (!mounted) return;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? AppColors.darkText : AppColors.lightText;
+    final surfaceColor = isDark
+        ? AppColors.darkSurface
+        : AppColors.lightSurface;
+    final subColor = isDark ? AppColors.darkSubtext : AppColors.lightSubtext;
+    final upiController = TextEditingController();
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          backgroundColor: surfaceColor,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Text(
+            'Add $name?',
+            style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ── Registration Status Badge ──────────────────────────
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: isRegistered
+                        ? AppColors.paid.withValues(alpha: 0.1)
+                        : AppColors.error.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: isRegistered
+                          ? AppColors.paid.withValues(alpha: 0.4)
+                          : AppColors.error.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        isRegistered
+                            ? Icons.verified_user_rounded
+                            : Icons.person_off_rounded,
+                        color: isRegistered ? AppColors.paid : AppColors.error,
+                        size: 26,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              isRegistered
+                                  ? 'Registered on SplitEase'
+                                  : 'Not on SplitEase',
+                              style: TextStyle(
+                                color: isRegistered
+                                    ? AppColors.paid
+                                    : AppColors.error,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              isRegistered
+                                  ? (upiId != null
+                                        ? 'UPI: $upiId'
+                                        : 'No UPI ID linked to their account')
+                                  : 'They are not on SplitEase yet.',
+                              style: TextStyle(color: subColor, fontSize: 12),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // ── UPI Input for unregistered members ─────────────────
+                if (!isRegistered) ...[
+                  const SizedBox(height: 14),
+                  Text(
+                    'UPI ID for Payment',
+                    style: TextStyle(
+                      color: textColor,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.fromLTRB(4, 0, 12, 0),
+                    decoration: BoxDecoration(
+                      color: isDark ? AppColors.darkBg : AppColors.lightBg,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isDark
+                            ? AppColors.darkSurfaceVariant
+                            : AppColors.lightSurfaceVariant,
+                      ),
+                    ),
+                    child: TextField(
+                      controller: upiController,
+                      autofocus: false,
+                      style: TextStyle(color: textColor, fontSize: 14),
+                      decoration: InputDecoration(
+                        border: InputBorder.none,
+                        hintText: 'e.g. name@okicici',
+                        hintStyle: TextStyle(color: subColor, fontSize: 13),
+                        prefixIcon: Icon(
+                          Icons.account_balance_wallet_rounded,
+                          color: AppColors.primary,
+                          size: 20,
+                        ),
+                        isDense: true,
+                      ),
+                      onChanged: (v) => setDialogState(() {}),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Optional — used to route payments to their account',
+                    style: TextStyle(color: subColor, fontSize: 11),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text('Cancel', style: TextStyle(color: subColor)),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              child: const Text(
+                'Add Member',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (confirmed == true) {
+      final enteredUpi = upiController.text.trim();
+      _callAddMemberApi(
+        name,
+        normalized,
+        upiId: enteredUpi.isEmpty ? null : enteredUpi,
+      );
+    }
+    upiController.dispose();
+  }
+
+  Future<void> _callAddMemberApi(
+    String name,
+    String phone, {
+    String? upiId,
+  }) async {
     setState(() => _isLoading = true);
     final res = await GroupService.addMember(
       _group.id,
       name,
       phone,
       0.0, // Initial expense amount is 0
+      upiId: upiId,
     );
     if (!mounted) return;
     setState(() => _isLoading = false);
@@ -310,6 +521,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
             children: [
               TextField(
                 controller: nameCtrl,
+                inputFormatters: [LengthLimitingTextInputFormatter(25)],
                 style: TextStyle(color: textColor),
                 decoration: InputDecoration(
                   hintText: 'Name',
@@ -345,10 +557,14 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
               onPressed: () {
                 Navigator.pop(context);
                 if (nameCtrl.text.isNotEmpty && phoneCtrl.text.isNotEmpty) {
-                  _callAddMemberApi(nameCtrl.text, phoneCtrl.text);
+                  _checkAndAddMember(
+                    nameCtrl.text,
+                    phoneCtrl.text,
+                    skipDialog: true,
+                  );
                 }
               },
-              child: const Text('Add'),
+              child: const Text('Check & Add'),
             ),
           ],
         );
@@ -379,8 +595,8 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        margin: EdgeInsets.only(bottom: 12),
-        padding: EdgeInsets.all(16),
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: surfaceColor,
           borderRadius: BorderRadius.circular(16),
@@ -391,44 +607,54 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
           ),
         ),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Row(
-              children: [
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.receipt_long_rounded,
-                    color: AppColors.primary,
-                    size: 24,
-                  ),
-                ),
-                SizedBox(width: 16),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: TextStyle(
-                        color: textColor,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      '$membersCount members',
-                      style: TextStyle(color: subColor, fontSize: 13),
-                    ),
-                  ],
-                ),
-              ],
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.receipt_long_rounded,
+                color: AppColors.primary,
+                size: 24,
+              ),
             ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      color: textColor,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.people_outline_rounded,
+                        size: 14,
+                        color: subColor,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '$membersCount members',
+                        style: TextStyle(color: subColor, fontSize: 13),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
@@ -436,7 +662,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
                   amount,
                   style: TextStyle(
                     color: textColor,
-                    fontSize: 18,
+                    fontSize: 17,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -586,7 +812,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
                           setState(() => _isLoading = false);
 
                           if (res.success) {
-                            if (!screenContext.mounted) return;
+                            if (!mounted) return;
                             Navigator.pop(screenContext); // Go back to Home
                             messenger.showSnackBar(
                               SnackBar(
@@ -597,7 +823,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
                               ),
                             );
                           } else {
-                            if (!screenContext.mounted) return;
+                            if (!mounted) return;
                             messenger.showSnackBar(
                               SnackBar(
                                 content: Text(res.message),
@@ -662,10 +888,10 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
         children: [
           // Overview Tab
           ListView(
-            padding: EdgeInsets.all(AppTheme.padding),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
             children: [
               Container(
-                padding: EdgeInsets.all(20),
+                padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(colors: AppColors.primaryGradient),
                   borderRadius: BorderRadius.circular(24),
@@ -700,7 +926,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
                   ),
                 ),
               if (_group.expenses.isNotEmpty) ...[
-                SizedBox(height: 16),
+                const SizedBox(height: 32),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -722,7 +948,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
                     ),
                   ],
                 ),
-                SizedBox(height: 16),
+                const SizedBox(height: 16),
                 ..._group.expenses.map((expense) {
                   return _buildExpenseTile(
                     title: expense.title,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:splitease_test/core/models/group_model.dart';
 import 'package:splitease_test/core/theme/app_theme.dart';
 import 'package:splitease_test/shared/widgets/app_button.dart';
@@ -111,6 +112,7 @@ class _AddGroupTabState extends State<AddGroupTab> {
                 ),
                 child: TextFormField(
                   controller: _nameController,
+                  inputFormatters: [LengthLimitingTextInputFormatter(25)],
                   decoration: const InputDecoration(
                     hintText: 'e.g. Goa Trip, Flatmates, Weekend Party',
                     border: InputBorder.none,

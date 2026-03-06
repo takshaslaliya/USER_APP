@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:splitease_test/core/config/app_config.dart';
 import 'package:splitease_test/core/services/auth_service.dart';
@@ -41,13 +40,13 @@ class GroupService {
               .timeout(const Duration(seconds: 15));
           break;
         case 'POST':
-          debugPrint('GroupService POST $uri Body: ${jsonEncode(body)}');
+          print('GroupService POST $uri Body: ${jsonEncode(body)}');
           response = await http
               .post(uri, headers: headers, body: jsonEncode(body))
               .timeout(const Duration(seconds: 15));
           break;
         case 'PUT':
-          debugPrint('GroupService PUT $uri Body: ${jsonEncode(body)}');
+          print('GroupService PUT $uri Body: ${jsonEncode(body)}');
           response = await http
               .put(uri, headers: headers, body: jsonEncode(body))
               .timeout(const Duration(seconds: 15));
@@ -61,7 +60,7 @@ class GroupService {
           throw Exception('Unsupported HTTP method $method');
       }
 
-      debugPrint('GroupService: $method $uri -> ${response.statusCode}');
+      print('GroupService: $method $uri -> ${response.statusCode}');
 
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
       return GroupResult(
@@ -71,7 +70,7 @@ class GroupService {
         statusCode: response.statusCode,
       );
     } catch (e) {
-      debugPrint('GroupService Error: $e');
+      print('GroupService Error: $e');
       return GroupResult(
         success: false,
         message: 'Network error ($e). Please check your connection.',
@@ -106,13 +105,13 @@ class GroupService {
         );
       }
 
-      debugPrint('GroupService Multipart: $method $uri');
+      print('GroupService Multipart: $method $uri');
       final streamedResponse = await request.send().timeout(
         const Duration(seconds: 30),
       );
       final response = await http.Response.fromStream(streamedResponse);
 
-      debugPrint('GroupService Multipart Result: ${response.statusCode}');
+      print('GroupService Multipart Result: ${response.statusCode}');
 
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
       return GroupResult(
@@ -122,7 +121,7 @@ class GroupService {
         statusCode: response.statusCode,
       );
     } catch (e) {
-      debugPrint('GroupService Multipart Error: $e');
+      print('GroupService Multipart Error: $e');
       return GroupResult(
         success: false,
         message: 'Upload error ($e). Please try again.',
@@ -161,6 +160,181 @@ class GroupService {
         'members': members,
       },
     );
+  }
+
+  // 2b. Calculate Optimal Split (For multiple payers)
+  static Future<GroupResult> calculateOptimalSplit({
+    required double totalAmount,
+    required List<String> members,
+    required Map<String, double> payments,
+  }) async {
+    try {
+      final headers = await AuthService.getAuthHeaders();
+      final uri = Uri.parse('${AppConfig.splitUrl}/calculate-split');
+      final response = await http
+          .post(
+            uri,
+            headers: headers,
+            body: jsonEncode({
+              'total_amount': totalAmount,
+              'members': members,
+              'payments': payments,
+            }),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      final decoded = jsonDecode(response.body);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return GroupResult(
+          success: true,
+          message: 'Split calculated successfully',
+          data: decoded,
+          statusCode: response.statusCode,
+        );
+      } else {
+        return GroupResult(
+          success: false,
+          message: decoded['message'] ?? 'Failed to calculate split',
+          statusCode: response.statusCode,
+        );
+      }
+    } catch (e) {
+      return GroupResult(
+        success: false,
+        message: 'Network error. Please try again.',
+        statusCode: 0,
+      );
+    }
+  }
+
+  // 2c. Finalize Split and Save Expense
+  static Future<GroupResult> updateSplit({
+    required double totalAmount,
+    required List<String> members,
+    required Map<String, double> payments,
+    required List<dynamic> transactions,
+    required String groupId,
+    required String expenseName,
+    Map<String, String>? upiIds,
+  }) async {
+    try {
+      final headers = await AuthService.getAuthHeaders();
+      final uri = Uri.parse('${AppConfig.splitUrl}/update-split');
+      final response = await http
+          .post(
+            uri,
+            headers: headers,
+            body: jsonEncode({
+              'total_amount': totalAmount,
+              'members': members,
+              'payments': payments,
+              'transactions': transactions,
+              'group_id': groupId,
+              'expense_name': expenseName,
+              if (upiIds != null) 'upi_ids': upiIds,
+            }),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      final decoded = jsonDecode(response.body);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return GroupResult(
+          success: decoded['success'] == true,
+          message: decoded['message'] ?? 'Expense saved successfully',
+          data: decoded,
+          statusCode: response.statusCode,
+        );
+      } else {
+        return GroupResult(
+          success: false,
+          message: decoded['message'] ?? 'Failed to save expense',
+          statusCode: response.statusCode,
+        );
+      }
+    } catch (e) {
+      return GroupResult(
+        success: false,
+        message: 'Network error: $e',
+        statusCode: 0,
+      );
+    }
+  }
+
+  // 2d. Get Split Details (Consolidated)
+  static Future<GroupResult> fetchSplitDetails(String splitId) async {
+    try {
+      final headers = await AuthService.getAuthHeaders();
+      final uri = Uri.parse('${AppConfig.splitUrl}/$splitId');
+      final response = await http
+          .get(uri, headers: headers)
+          .timeout(const Duration(seconds: 15));
+
+      final decoded = jsonDecode(response.body);
+      return GroupResult(
+        success: decoded['success'] == true,
+        message: decoded['message'] ?? '',
+        data: decoded['data'],
+        statusCode: response.statusCode,
+      );
+    } catch (e) {
+      return GroupResult(success: false, message: 'Network error: $e');
+    }
+  }
+
+  // 2e. Update Transaction status/amount
+  static Future<GroupResult> updateSplitTransaction(
+    String memberId, {
+    double? amount,
+    bool? isPaid,
+    String? name,
+  }) async {
+    try {
+      final headers = await AuthService.getAuthHeaders();
+      final uri = Uri.parse('${AppConfig.splitUrl}/transaction/$memberId');
+      final response = await http
+          .put(
+            uri,
+            headers: headers,
+            body: jsonEncode({
+              if (amount != null) 'expense_amount': amount,
+              if (isPaid != null) 'is_paid': isPaid,
+              if (name != null) 'name': name,
+            }),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      final decoded = jsonDecode(response.body);
+      return GroupResult(
+        success: decoded['success'] == true,
+        message: decoded['message'] ?? '',
+        data: decoded,
+        statusCode: response.statusCode,
+      );
+    } catch (e) {
+      return GroupResult(success: false, message: 'Network error: $e');
+    }
+  }
+
+  // 2f. Delete Consolidated Split
+  static Future<GroupResult> deleteSplit(String splitId) async {
+    try {
+      final headers = await AuthService.getAuthHeaders();
+      final uri = Uri.parse('${AppConfig.splitUrl}/$splitId');
+      final response = await http
+          .delete(uri, headers: headers)
+          .timeout(const Duration(seconds: 15));
+
+      final decoded = jsonDecode(response.body);
+      return GroupResult(
+        success: decoded['success'] == true,
+        message: decoded['message'] ?? '',
+        statusCode: response.statusCode,
+      );
+    } catch (e) {
+      return GroupResult(success: false, message: 'Network error: $e');
+    }
   }
 
   // 3. Get All Top-Level Groups (Created by User)
@@ -216,19 +390,18 @@ class GroupService {
           'data': body, // try both top-level and nested to be sure
         };
 
-        debugPrint('GroupService: Attempting Base64 Upload for icon');
+        print('GroupService: Attempting Base64 Upload for icon');
         return _request('PUT', '/$groupId', body: wrappedBody);
       } catch (e) {
-        debugPrint(
+        print(
           'GroupService: Base64 encoding failed, falling back to multipart',
         );
         // fallthrough to multipart if base64 fails
       }
 
       final Map<String, String> fields = {'name': name ?? 'Group'};
-      if (totalExpense != null) {
+      if (totalExpense != null)
         fields['total_expense'] = totalExpense.toString();
-      }
 
       return _multipartRequest(
         'PUT',
@@ -264,17 +437,16 @@ class GroupService {
     String groupId,
     String name,
     String phoneNumber,
-    double expenseAmount,
-  ) async {
-    return _request(
-      'POST',
-      '/$groupId/members',
-      body: {
-        'name': name,
-        'phone_number': phoneNumber,
-        'expense_amount': expenseAmount,
-      },
-    );
+    double expenseAmount, {
+    String? upiId,
+  }) async {
+    final body = {
+      'name': name,
+      'phone_number': phoneNumber,
+      'expense_amount': expenseAmount,
+      if (upiId != null && upiId.isNotEmpty) 'upi_id': upiId,
+    };
+    return _request('POST', '/$groupId/members', body: body);
   }
 
   // 8. Edit Member Expense (NEW)

@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:splitease_test/core/config/app_config.dart';
 import 'package:splitease_test/core/services/auth_service.dart';
@@ -45,7 +44,7 @@ class DashboardService {
           .get(uri, headers: headers)
           .timeout(const Duration(seconds: 15));
 
-      debugPrint('DashboardService: GET $uri -> ${response.statusCode}');
+      print('DashboardService: GET $uri -> ${response.statusCode}');
 
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
 
@@ -62,7 +61,7 @@ class DashboardService {
         );
       }
     } catch (e) {
-      debugPrint('DashboardService Error: $e');
+      print('DashboardService Error: $e');
       return DashboardResult(
         success: false,
         message: 'Network error. Please check your connection.',

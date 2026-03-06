@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:splitease_test/core/config/app_config.dart';
@@ -90,12 +89,12 @@ class AuthService {
       final response = await http
           .post(uri, headers: _headers, body: jsonEncode(body))
           .timeout(const Duration(seconds: 15));
-      debugPrint('AuthService: POST $uri -> ${response.statusCode}');
+      print('AuthService: POST $uri -> ${response.statusCode}');
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
       decoded['_statusCode'] = response.statusCode;
       return decoded;
     } catch (e) {
-      debugPrint('AuthService Error: POST $uri -> $e');
+      print('AuthService Error: POST $uri -> $e');
       return {
         'success': false,
         'message': 'Network error ($e). Please check your connection.',
@@ -279,6 +278,36 @@ class AuthService {
   }
 
   // ─────────────────────────────────────────────────────────────────────────
+  // 7b. Check user status by mobile — POST /api/user/check-status
+  // ─────────────────────────────────────────────────────────────────────────
+
+  static Future<AuthResult> checkUserStatus(String mobileNumber) async {
+    try {
+      final headers = await getAuthHeaders();
+      final response = await http
+          .post(
+            Uri.parse('${AppConfig.userUrl}/check-status'),
+            headers: headers,
+            body: jsonEncode({'mobile_number': mobileNumber}),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+
+      return AuthResult(
+        success: decoded['success'] == true,
+        message: decoded['message'] ?? 'Checked',
+        data: decoded['data'] as Map<String, dynamic>?,
+      );
+    } catch (e) {
+      return AuthResult(
+        success: false,
+        message: 'Network error. Please try again.',
+      );
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
   // 8. Update user profile — PUT /api/user/profile
   // ─────────────────────────────────────────────────────────────────────────
 
@@ -317,6 +346,36 @@ class AuthService {
             decoded['message'] ??
             (decoded['success'] == true ? 'Profile updated' : 'Update failed'),
         data: finalUserData,
+      );
+    } catch (e) {
+      return AuthResult(
+        success: false,
+        message: 'Network error. Please try again.',
+      );
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 9. Get member name by mobile — POST /api/user/member-name
+  // ─────────────────────────────────────────────────────────────────────────
+
+  static Future<AuthResult> getMemberName(String mobileNumber) async {
+    try {
+      final headers = await getAuthHeaders();
+      final response = await http
+          .post(
+            Uri.parse('${AppConfig.userUrl}/member-name'),
+            headers: headers,
+            body: jsonEncode({'mobile_number': mobileNumber}),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+
+      return AuthResult(
+        success: decoded['success'] == true,
+        message: decoded['message'] ?? 'Fetched',
+        data: decoded['data'] as Map<String, dynamic>?,
       );
     } catch (e) {
       return AuthResult(

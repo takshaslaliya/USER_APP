@@ -15,6 +15,9 @@ class AppConfig {
   /// Convenience getter for user sub-path
   static const String userUrl = '$apiBaseUrl/user';
 
+  /// Split API endpoints
+  static const String splitUrl = '$apiBaseUrl/split';
+
   /// WhatsApp API endpoints
   static const String whatsappUrl = '$apiBaseUrl/whatsapp';
 

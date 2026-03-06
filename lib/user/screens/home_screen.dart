@@ -3,7 +3,7 @@ import 'package:splitease_test/core/theme/app_theme.dart';
 import 'package:splitease_test/user/screens/tabs/dashboard_tab.dart';
 import 'package:splitease_test/user/screens/tabs/groups_tab.dart';
 import 'package:splitease_test/user/screens/tabs/add_group_tab.dart';
-import 'package:splitease_test/user/screens/tabs/shared_groups_tab.dart';
+import 'package:splitease_test/user/screens/tabs/personal_settlement_tab.dart';
 import 'package:splitease_test/user/screens/tabs/settings_tab.dart';
 import 'package:splitease_test/core/services/achievement_service.dart';
 
@@ -28,7 +28,7 @@ class _HomeScreenState extends State<HomeScreen> {
     const DashboardTab(),
     const GroupsTab(),
     const AddGroupTab(),
-    const SharedGroupsTab(),
+    const PersonalSettlementTab(),
     const SettingsTab(),
   ];
 
@@ -95,7 +95,8 @@ class _HomeScreenState extends State<HomeScreen> {
             // Center Add Button (Index 2)
             _buildNavItem(2, Icons.add_rounded, isDark),
 
-            _buildNavItem(3, Icons.people_alt_rounded, isDark),
+            // Personal Settlement (replaces Shared Groups)
+            _buildNavItem(3, Icons.account_balance_wallet_rounded, isDark),
             _buildNavItem(4, Icons.settings_rounded, isDark),
           ],
         ),

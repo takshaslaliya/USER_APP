@@ -201,18 +201,14 @@ class _SettingsTabState extends State<SettingsTab> {
               onPressed: () {
                 Navigator.pop(context);
                 final body = <String, dynamic>{};
-                if (nameCtrl.text != _user!.fullName) {
+                if (nameCtrl.text != _user!.fullName)
                   body['full_name'] = nameCtrl.text;
-                }
-                if (userCtrl.text != _user!.username) {
+                if (userCtrl.text != _user!.username)
                   body['username'] = userCtrl.text;
-                }
-                if (mobileCtrl.text != _user!.mobileNumber) {
+                if (mobileCtrl.text != _user!.mobileNumber)
                   body['mobile_number'] = mobileCtrl.text;
-                }
-                if (upiCtrl.text != (_user!.upiId ?? '')) {
+                if (upiCtrl.text != (_user!.upiId ?? ''))
                   body['upi_id'] = upiCtrl.text;
-                }
 
                 if (body.isNotEmpty) {
                   _updateProfileMap(body);
