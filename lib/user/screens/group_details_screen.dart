@@ -815,7 +815,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
                           setState(() => _isLoading = false);
 
                           if (res.success) {
-                            if (!mounted) return;
+                            if (!screenContext.mounted) return;
                             Navigator.pop(screenContext); // Go back to Home
                             messenger.showSnackBar(
                               SnackBar(
@@ -826,7 +826,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
                               ),
                             );
                           } else {
-                            if (!mounted) return;
+                            if (!screenContext.mounted) return;
                             messenger.showSnackBar(
                               SnackBar(
                                 content: Text(res.message),

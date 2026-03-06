@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:splitease_test/core/config/app_config.dart';
 import 'package:splitease_test/core/services/auth_service.dart';
@@ -40,13 +41,13 @@ class GroupService {
               .timeout(const Duration(seconds: 15));
           break;
         case 'POST':
-          print('GroupService POST $uri Body: ${jsonEncode(body)}');
+          debugPrint('GroupService POST $uri Body: ${jsonEncode(body)}');
           response = await http
               .post(uri, headers: headers, body: jsonEncode(body))
               .timeout(const Duration(seconds: 15));
           break;
         case 'PUT':
-          print('GroupService PUT $uri Body: ${jsonEncode(body)}');
+          debugPrint('GroupService PUT $uri Body: ${jsonEncode(body)}');
           response = await http
               .put(uri, headers: headers, body: jsonEncode(body))
               .timeout(const Duration(seconds: 15));
@@ -60,7 +61,7 @@ class GroupService {
           throw Exception('Unsupported HTTP method $method');
       }
 
-      print('GroupService: $method $uri -> ${response.statusCode}');
+      debugPrint('GroupService: $method $uri -> ${response.statusCode}');
 
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
       return GroupResult(
@@ -70,7 +71,7 @@ class GroupService {
         statusCode: response.statusCode,
       );
     } catch (e) {
-      print('GroupService Error: $e');
+      debugPrint('GroupService Error: $e');
       return GroupResult(
         success: false,
         message: 'Network error ($e). Please check your connection.',
@@ -105,13 +106,13 @@ class GroupService {
         );
       }
 
-      print('GroupService Multipart: $method $uri');
+      debugPrint('GroupService Multipart: $method $uri');
       final streamedResponse = await request.send().timeout(
         const Duration(seconds: 30),
       );
       final response = await http.Response.fromStream(streamedResponse);
 
-      print('GroupService Multipart Result: ${response.statusCode}');
+      debugPrint('GroupService Multipart Result: ${response.statusCode}');
 
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
       return GroupResult(
@@ -121,7 +122,7 @@ class GroupService {
         statusCode: response.statusCode,
       );
     } catch (e) {
-      print('GroupService Multipart Error: $e');
+      debugPrint('GroupService Multipart Error: $e');
       return GroupResult(
         success: false,
         message: 'Upload error ($e). Please try again.',
@@ -234,7 +235,7 @@ class GroupService {
               'group_id': groupId,
               'expense_name': expenseName,
               'split_type': splitType,
-              if (upiIds != null) 'upi_ids': upiIds,
+              'upi_ids': ?upiIds,
             }),
           )
           .timeout(const Duration(seconds: 15));
@@ -300,9 +301,9 @@ class GroupService {
             uri,
             headers: headers,
             body: jsonEncode({
-              if (amount != null) 'expense_amount': amount,
-              if (isPaid != null) 'is_paid': isPaid,
-              if (name != null) 'name': name,
+              'expense_amount': ?amount,
+              'is_paid': ?isPaid,
+              'name': ?name,
             }),
           )
           .timeout(const Duration(seconds: 15));
@@ -392,18 +393,19 @@ class GroupService {
           'data': body, // try both top-level and nested to be sure
         };
 
-        print('GroupService: Attempting Base64 Upload for icon');
+        debugPrint('GroupService: Attempting Base64 Upload for icon');
         return _request('PUT', '/$groupId', body: wrappedBody);
       } catch (e) {
-        print(
+        debugPrint(
           'GroupService: Base64 encoding failed, falling back to multipart',
         );
         // fallthrough to multipart if base64 fails
       }
 
       final Map<String, String> fields = {'name': name ?? 'Group'};
-      if (totalExpense != null)
+      if (totalExpense != null) {
         fields['total_expense'] = totalExpense.toString();
+      }
 
       return _multipartRequest(
         'PUT',

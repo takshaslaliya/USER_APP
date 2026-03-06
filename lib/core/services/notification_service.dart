@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:splitease_test/core/config/app_config.dart';
 import 'package:splitease_test/core/services/auth_service.dart';
@@ -66,7 +67,7 @@ class NotificationService {
       }
       return [];
     } catch (e) {
-      print('NotificationService Error: $e');
+      debugPrint('NotificationService Error: $e');
       return [];
     }
   }
@@ -86,7 +87,7 @@ class NotificationService {
       }
       return false;
     } catch (e) {
-      print('NotificationService MarkRead Error: $e');
+      debugPrint('NotificationService MarkRead Error: $e');
       return false;
     }
   }

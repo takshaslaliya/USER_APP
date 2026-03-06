@@ -109,10 +109,18 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     _nameController.dispose();
     _amountController.dispose();
     _soloPayerUpiController.dispose();
-    for (var c in _payerAmountControllers.values) c.dispose();
-    for (var c in _groupPayerUpiControllers.values) c.dispose();
-    for (var c in _percentControllers.values) c.dispose();
-    for (var c in _customControllers.values) c.dispose();
+    for (var c in _payerAmountControllers.values) {
+      c.dispose();
+    }
+    for (var c in _groupPayerUpiControllers.values) {
+      c.dispose();
+    }
+    for (var c in _percentControllers.values) {
+      c.dispose();
+    }
+    for (var c in _customControllers.values) {
+      c.dispose();
+    }
     super.dispose();
   }
 
@@ -537,9 +545,12 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                         ),
                         onChanged: (_) => setState(() {}),
                         validator: (v) {
-                          if (v!.isEmpty) return 'Enter amount';
-                          if (double.tryParse(v) == null)
+                          if (v!.isEmpty) {
+                            return 'Enter amount';
+                          }
+                          if (double.tryParse(v) == null) {
                             return 'Invalid number';
+                          }
                           return null;
                         },
                       ),
@@ -567,10 +578,13 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                   _soloPayerUpiController.clear();
                   _groupPayerIds.clear();
                   for (final n in _uniqueNames) {
-                    if (!_selectedParticipants.contains(n))
+                    if (!_selectedParticipants.contains(n)) {
                       _selectedParticipants.add(n);
+                    }
                   }
-                  for (var c in _payerAmountControllers.values) c.text = '';
+                  for (var c in _payerAmountControllers.values) {
+                    c.text = '';
+                  }
                 }),
               ),
 
@@ -975,10 +989,11 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                     borderColor: borderColor,
                     textColor: textColor,
                     onSelected: (val) => setState(() {
-                      if (val)
+                      if (val) {
                         _selectedParticipants.add(name);
-                      else
+                      } else {
                         _selectedParticipants.remove(name);
+                      }
                     }),
                   );
                 }).toList(),

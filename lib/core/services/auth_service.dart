@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:splitease_test/core/config/app_config.dart';
@@ -89,12 +90,12 @@ class AuthService {
       final response = await http
           .post(uri, headers: _headers, body: jsonEncode(body))
           .timeout(const Duration(seconds: 15));
-      print('AuthService: POST $uri -> ${response.statusCode}');
+      debugPrint('AuthService: POST $uri -> ${response.statusCode}');
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
       decoded['_statusCode'] = response.statusCode;
       return decoded;
     } catch (e) {
-      print('AuthService Error: POST $uri -> $e');
+      debugPrint('AuthService Error: POST $uri -> $e');
       return {
         'success': false,
         'message': 'Network error ($e). Please check your connection.',

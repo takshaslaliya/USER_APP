@@ -592,7 +592,7 @@ class _ExpenseDetailsScreenState extends State<ExpenseDetailsScreen> {
     String finalMessage;
     if (customMessage != null) {
       finalMessage =
-          customMessage.replaceAll('\n\nThank you!', '') + '\n\nThank you!';
+          '${customMessage.replaceAll('\n\nThank you!', '')}\n\nThank you!';
     } else {
       finalMessage =
           'Hi %name%, here is a reminder for %creditor%. Please pay ₹%amount% using the QR code below. Thank you!';
@@ -801,6 +801,7 @@ class _ExpenseDetailsScreenState extends State<ExpenseDetailsScreen> {
                           if (mounted) {
                             setState(() => _isLoading = false);
                             if (res.success) {
+                              if (!screenContext.mounted) return;
                               Navigator.pop(
                                 screenContext,
                                 true,
