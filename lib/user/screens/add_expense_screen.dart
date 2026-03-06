@@ -33,6 +33,11 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   // ── Group Payment ─────────────────────────────────────────────────────────
   final Set<String> _groupPayerIds = {};
   final Map<String, TextEditingController> _payerAmountControllers = {};
+  // Per-payer status for Group Payment
+  final Map<String, bool> _groupPayerRegistered = {}; // true = registered
+  final Map<String, String?> _groupPayerUpiFromApi = {}; // UPI from API
+  final Map<String, TextEditingController> _groupPayerUpiControllers = {};
+  final Map<String, bool> _groupPayerChecking = {}; // loading per payer
 
   // ── Split Options (shared) ────────────────────────────────────────────────
   String _splitType = 'Equal'; // 'Equal' | 'Percentage' | 'Custom'
@@ -58,6 +63,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     for (final name in _uniqueNames) {
       _selectedParticipants.add(name);
       _payerAmountControllers[name] = TextEditingController();
+      _groupPayerUpiControllers[name] = TextEditingController();
       _percentControllers[name] = TextEditingController(text: '0');
       _customControllers[name] = TextEditingController(text: '0');
     }
@@ -69,6 +75,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     _amountController.dispose();
     _soloPayerUpiController.dispose();
     for (var c in _payerAmountControllers.values) c.dispose();
+    for (var c in _groupPayerUpiControllers.values) c.dispose();
     for (var c in _percentControllers.values) c.dispose();
     for (var c in _customControllers.values) c.dispose();
     super.dispose();
@@ -118,7 +125,50 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     });
   }
 
-  // ── Validation helpers ─────────────────────────────────────────────────────
+  // ── Payer status check (Group Payment) ───────────────────────────────────
+
+  Future<void> _checkGroupPayer(String name) async {
+    final member = widget.group.members.firstWhere((m) => m.name == name);
+    final phone = member.phoneNumber ?? '';
+    if (phone.isEmpty) {
+      setState(() {
+        _groupPayerRegistered[name] = false;
+        _groupPayerUpiFromApi[name] = null;
+        _groupPayerChecking[name] = false;
+      });
+      return;
+    }
+
+    String normalized = phone.replaceAll(RegExp(r'[\s\-()]'), '');
+    if (normalized.startsWith('+')) normalized = normalized.substring(1);
+    if (!normalized.startsWith('91') && normalized.length == 10) {
+      normalized = '91$normalized';
+    }
+
+    setState(() => _groupPayerChecking[name] = true);
+    final res = await AuthService.checkUserStatus(normalized);
+    if (!mounted) return;
+
+    bool isReg = false;
+    String? upiId;
+    if (res.data != null) {
+      final raw = res.data!['is_register'];
+      isReg = (raw == true) || (raw?.toString().toLowerCase() == 'true');
+      final rawUpi = res.data!['upi_id'];
+      if (rawUpi != null &&
+          rawUpi.toString().isNotEmpty &&
+          rawUpi.toString() != 'false') {
+        upiId = rawUpi.toString();
+      }
+    }
+
+    setState(() {
+      _groupPayerChecking[name] = false;
+      _groupPayerRegistered[name] = isReg;
+      _groupPayerUpiFromApi[name] = upiId;
+      if (upiId != null) _groupPayerUpiControllers[name]?.text = upiId;
+    });
+  }
 
   void _snack(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -557,29 +607,37 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                       surfaceColor: surfaceColor,
                       borderColor: borderColor,
                       textColor: textColor,
-                      onSelected: (val) => setState(() {
-                        if (val) {
-                          _groupPayerIds.add(name);
-                          _selectedParticipants.remove(name);
-                          if (_groupPayerIds.length == 1) {
-                            _payerAmountControllers[name]?.text =
-                                _amountController.text;
+                      onSelected: (val) {
+                        setState(() {
+                          if (val) {
+                            _groupPayerIds.add(name);
+                            _selectedParticipants.remove(name);
+                            if (_groupPayerIds.length == 1) {
+                              _payerAmountControllers[name]?.text =
+                                  _amountController.text;
+                            } else {
+                              for (var p in _groupPayerIds) {
+                                _payerAmountControllers[p]?.text = '';
+                              }
+                            }
                           } else {
-                            for (var p in _groupPayerIds)
-                              _payerAmountControllers[p]?.text = '';
+                            _groupPayerIds.remove(name);
+                            _payerAmountControllers[name]?.text = '';
+                            _groupPayerUpiControllers[name]?.text = '';
+                            _groupPayerRegistered.remove(name);
+                            _groupPayerUpiFromApi.remove(name);
+                            if (!_selectedParticipants.contains(name)) {
+                              _selectedParticipants.add(name);
+                            }
+                            if (_groupPayerIds.length == 1) {
+                              _payerAmountControllers[_groupPayerIds.first]
+                                      ?.text =
+                                  _amountController.text;
+                            }
                           }
-                        } else {
-                          _groupPayerIds.remove(name);
-                          _payerAmountControllers[name]?.text = '';
-                          if (!_selectedParticipants.contains(name))
-                            _selectedParticipants.add(name);
-                          if (_groupPayerIds.length == 1) {
-                            _payerAmountControllers[_groupPayerIds.first]
-                                    ?.text =
-                                _amountController.text;
-                          }
-                        }
-                      }),
+                        });
+                        if (val) _checkGroupPayer(name);
+                      },
                     );
                   }).toList(),
                 ),
@@ -589,11 +647,20 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                     surfaceColor,
                     borderColor,
                     Column(
-                      children: _groupPayerIds
-                          .map(
-                            (n) => Padding(
-                              padding: const EdgeInsets.only(bottom: 8),
-                              child: Row(
+                      children: _groupPayerIds.map((n) {
+                        final isChecking = _groupPayerChecking[n] == true;
+                        final isReg = _groupPayerRegistered[n];
+                        final upiFromApi = _groupPayerUpiFromApi[n];
+                        // Show UPI field if: not registered, OR registered but no UPI linked
+                        final needsUpi =
+                            isReg != null && (!isReg || upiFromApi == null);
+
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
                                 mainAxisAlignment:
                                     MainAxisAlignment.spaceBetween,
                                 children: [
@@ -639,9 +706,104 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                                   ),
                                 ],
                               ),
-                            ),
-                          )
-                          .toList(),
+                              // Status indicator
+                              if (isChecking)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 6),
+                                  child: Row(
+                                    children: [
+                                      SizedBox(
+                                        width: 12,
+                                        height: 12,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 1.5,
+                                          color: AppColors.primary,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        'Checking...',
+                                        style: TextStyle(
+                                          color: subColor,
+                                          fontSize: 11,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              else if (isReg != null)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 4),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        isReg
+                                            ? Icons.verified_user_rounded
+                                            : Icons.person_off_rounded,
+                                        color: isReg
+                                            ? AppColors.paid
+                                            : AppColors.error,
+                                        size: 14,
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        isReg
+                                            ? (upiFromApi != null
+                                                  ? 'UPI: $upiFromApi'
+                                                  : 'No UPI linked')
+                                            : 'Not on SplitEase',
+                                        style: TextStyle(
+                                          color: isReg
+                                              ? AppColors.paid
+                                              : AppColors.error,
+                                          fontSize: 11,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              // UPI input if needed
+                              if (needsUpi)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 6),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.account_balance_wallet_rounded,
+                                        color: AppColors.primary,
+                                        size: 14,
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Expanded(
+                                        child: TextField(
+                                          controller:
+                                              _groupPayerUpiControllers[n],
+                                          style: TextStyle(
+                                            color: textColor,
+                                            fontSize: 13,
+                                          ),
+                                          decoration: InputDecoration(
+                                            border: InputBorder.none,
+                                            hintText: isReg == false
+                                                ? 'Enter UPI ID for payment'
+                                                : 'Add UPI ID',
+                                            hintStyle: TextStyle(
+                                              color: subColor,
+                                              fontSize: 12,
+                                            ),
+                                            isDense: true,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              if (n != _groupPayerIds.last)
+                                Divider(color: borderColor, height: 16),
+                            ],
+                          ),
+                        );
+                      }).toList(),
                     ),
                   ),
                 ],
