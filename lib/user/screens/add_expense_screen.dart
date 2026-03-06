@@ -499,7 +499,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
             children: [
               // ── Expense Details ──────────────────────────────────────
               _header('Expense Details', textColor),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
               _card(
                 surfaceColor,
                 borderColor,
@@ -544,11 +544,11 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                 ),
               ),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: 32),
 
               // ── Payment Type Toggle ──────────────────────────────────
               _header('Payment Type', textColor),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
               _toggle(
                 options: ['Solo Payment', 'Group Payment'],
                 selected: _paymentType,
@@ -570,12 +570,12 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                 }),
               ),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: 32),
 
               // ── SOLO: Paid By ────────────────────────────────────────
               if (_paymentType == 'Solo Payment') ...[
                 _header('Paid By', textColor),
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
                 _card(
                   surfaceColor,
                   borderColor,
@@ -725,13 +725,13 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 32),
               ],
 
               // ── GROUP: Who Paid (chips + amounts) ────────────────────
               if (_paymentType == 'Group Payment') ...[
                 _header('Who Paid?', textColor),
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
@@ -934,13 +934,13 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                     ),
                   ),
                 ],
-                const SizedBox(height: 24),
+                const SizedBox(height: 32),
               ],
 
               // ── Split Options (Solo Only) ──────────────────────────
               if (_paymentType == 'Solo Payment') ...[
                 _header('Split Options', textColor),
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
                 _toggle(
                   options: ['Equal', 'Percentage', 'Custom'],
                   selected: _splitType,
@@ -948,7 +948,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                   subColor: subColor,
                   onTap: (val) => setState(() => _splitType = val),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 32),
               ],
 
               // ── Split Among ──────────────────────────────────────────
@@ -962,7 +962,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
@@ -1349,7 +1349,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 32),
                 _isLoading
                     ? Center(
                         child: CircularProgressIndicator(
@@ -1371,13 +1371,16 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
 
   // ── Widget helpers ────────────────────────────────────────────────────────
 
-  Widget _header(String t, Color c) => Text(
-    t,
-    style: TextStyle(
-      color: c,
-      fontSize: 16,
-      fontWeight: FontWeight.w700,
-      letterSpacing: 0.3,
+  Widget _header(String t, Color c) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 4),
+    child: Text(
+      t,
+      style: TextStyle(
+        color: c,
+        fontSize: 16,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 0.3,
+      ),
     ),
   );
 

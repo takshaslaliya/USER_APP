@@ -105,7 +105,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
           return;
         }
 
-        _checkAndAddMember(name, phone);
+        _checkAndAddMember(name, phone, skipDialog: true);
       }
     } else {
       if (!mounted) return;
@@ -187,7 +187,11 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
     }
   }
 
-  Future<void> _checkAndAddMember(String name, String phone) async {
+  Future<void> _checkAndAddMember(
+    String name,
+    String phone, {
+    bool skipDialog = false,
+  }) async {
     // Normalize phone to E.164 (91XXXXXXXXXX format)
     String normalized = phone.replaceAll(RegExp(r'[\s\-()]'), '');
     if (normalized.startsWith('+')) normalized = normalized.substring(1);
@@ -213,6 +217,11 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
           rawUpi.toString() != 'false') {
         upiId = rawUpi.toString();
       }
+    }
+
+    if (skipDialog) {
+      _callAddMemberApi(name, normalized, upiId: upiId);
+      return;
     }
 
     // Show status dialog before adding
@@ -376,7 +385,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
       final enteredUpi = upiController.text.trim();
       _callAddMemberApi(
         name,
-        phone,
+        normalized,
         upiId: enteredUpi.isEmpty ? null : enteredUpi,
       );
     }
@@ -546,7 +555,11 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
               onPressed: () {
                 Navigator.pop(context);
                 if (nameCtrl.text.isNotEmpty && phoneCtrl.text.isNotEmpty) {
-                  _checkAndAddMember(nameCtrl.text, phoneCtrl.text);
+                  _checkAndAddMember(
+                    nameCtrl.text,
+                    phoneCtrl.text,
+                    skipDialog: true,
+                  );
                 }
               },
               child: const Text('Check & Add'),
@@ -580,8 +593,8 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        margin: EdgeInsets.only(bottom: 12),
-        padding: EdgeInsets.all(16),
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: surfaceColor,
           borderRadius: BorderRadius.circular(16),
@@ -592,44 +605,54 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
           ),
         ),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Row(
-              children: [
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.receipt_long_rounded,
-                    color: AppColors.primary,
-                    size: 24,
-                  ),
-                ),
-                SizedBox(width: 16),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: TextStyle(
-                        color: textColor,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      '$membersCount members',
-                      style: TextStyle(color: subColor, fontSize: 13),
-                    ),
-                  ],
-                ),
-              ],
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.receipt_long_rounded,
+                color: AppColors.primary,
+                size: 24,
+              ),
             ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      color: textColor,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.people_outline_rounded,
+                        size: 14,
+                        color: subColor,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '$membersCount members',
+                        style: TextStyle(color: subColor, fontSize: 13),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
@@ -637,7 +660,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
                   amount,
                   style: TextStyle(
                     color: textColor,
-                    fontSize: 18,
+                    fontSize: 17,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -863,10 +886,10 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
         children: [
           // Overview Tab
           ListView(
-            padding: EdgeInsets.all(AppTheme.padding),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
             children: [
               Container(
-                padding: EdgeInsets.all(20),
+                padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(colors: AppColors.primaryGradient),
                   borderRadius: BorderRadius.circular(24),
@@ -901,7 +924,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
                   ),
                 ),
               if (_group.expenses.isNotEmpty) ...[
-                SizedBox(height: 16),
+                const SizedBox(height: 32),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -923,7 +946,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
                     ),
                   ],
                 ),
-                SizedBox(height: 16),
+                const SizedBox(height: 16),
                 ..._group.expenses.map((expense) {
                   return _buildExpenseTile(
                     title: expense.title,
