@@ -8,6 +8,8 @@ import 'package:splitease_test/user/screens/tabs/add_group_tab.dart';
 import 'package:splitease_test/user/screens/tabs/personal_settlement_tab.dart';
 import 'package:splitease_test/user/screens/tabs/settings_tab.dart';
 import 'package:splitease_test/core/services/achievement_service.dart';
+import 'package:splitease_test/core/providers/notification_provider.dart';
+import 'package:splitease_test/shared/utils/notification_helper.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -22,6 +24,20 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     // Track app opening for 'Consistent User' achievement
     AchievementService.trackUsage();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context
+            .read<NotificationProvider>()
+            .onNewNotification = (notification) {
+          NotificationHelper.showInfo(
+            context,
+            notification.message,
+            title: notification.title,
+          );
+        };
+      }
+    });
   }
 
   final List<Widget> _tabs = [

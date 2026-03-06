@@ -13,6 +13,7 @@ import 'package:splitease_test/core/models/group_model.dart';
 
 import 'package:splitease_test/core/providers/navigation_provider.dart';
 import 'package:splitease_test/core/providers/data_refresh_provider.dart';
+import 'package:splitease_test/core/providers/notification_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -46,6 +47,9 @@ void main() async {
         ),
         ChangeNotifierProvider<DataRefreshProvider>(
           create: (_) => DataRefreshProvider(),
+        ),
+        ChangeNotifierProvider<NotificationProvider>(
+          create: (_) => NotificationProvider(),
         ),
       ],
       child: SplitEaseApp(initialRoute: loggedIn ? '/home' : '/'),

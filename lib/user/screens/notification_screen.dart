@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:splitease_test/core/theme/app_theme.dart';
 import 'package:splitease_test/core/services/notification_service.dart';
+import 'package:splitease_test/core/providers/notification_provider.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 
 class NotificationScreen extends StatefulWidget {
   const NotificationScreen({super.key});
@@ -11,50 +13,9 @@ class NotificationScreen extends StatefulWidget {
 }
 
 class _NotificationScreenState extends State<NotificationScreen> {
-  bool _isLoading = true;
-  List<NotificationModel> _notifications = [];
-
-  @override
-  void initState() {
-    super.initState();
-    _loadNotifications();
-  }
-
-  Future<void> _loadNotifications() async {
-    setState(() => _isLoading = true);
-    try {
-      final results = await NotificationService.fetchNotifications();
-      if (mounted) {
-        setState(() {
-          _notifications = results;
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
   Future<void> _markAsRead(NotificationModel item) async {
     if (item.isRead) return;
-
-    final success = await NotificationService.markAsRead(item.id);
-    if (success && mounted) {
-      setState(() {
-        final index = _notifications.indexWhere((n) => n.id == item.id);
-        if (index != -1) {
-          _notifications[index] = NotificationModel(
-            id: item.id,
-            userId: item.userId,
-            userName: item.userName,
-            title: item.title,
-            message: item.message,
-            isRead: true,
-            createdAt: item.createdAt,
-          );
-        }
-      });
-    }
+    context.read<NotificationProvider>().markAsRead(item.id);
   }
 
   @override
@@ -69,6 +30,9 @@ class _NotificationScreenState extends State<NotificationScreen> {
     final borderColor = isDark
         ? AppColors.darkSurfaceVariant
         : AppColors.lightSurfaceVariant;
+
+    final provider = Provider.of<NotificationProvider>(context);
+    final notifications = provider.notifications;
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -98,18 +62,17 @@ class _NotificationScreenState extends State<NotificationScreen> {
         ),
         centerTitle: false,
       ),
-      body: _isLoading
-          ? Center(child: CircularProgressIndicator(color: AppColors.primary))
-          : _notifications.isEmpty
+      body: notifications.isEmpty
           ? _buildEmptyState(textColor, subColor)
           : RefreshIndicator(
               color: AppColors.primary,
-              onRefresh: _loadNotifications,
+              onRefresh: () async =>
+                  await NotificationService.fetchNotifications(),
               child: ListView.builder(
                 padding: const EdgeInsets.all(16),
-                itemCount: _notifications.length,
+                itemCount: notifications.length,
                 itemBuilder: (context, index) {
-                  final item = _notifications[index];
+                  final item = notifications[index];
                   return _buildNotificationCard(
                     item,
                     textColor,
