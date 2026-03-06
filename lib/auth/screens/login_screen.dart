@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:splitease_test/core/services/auth_service.dart';
 import 'package:splitease_test/core/theme/app_theme.dart';
 import 'package:splitease_test/shared/widgets/app_button.dart';
+import 'package:splitease_test/shared/utils/notification_helper.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -106,12 +107,7 @@ class _LoginScreenState extends State<LoginScreen>
           arguments: _signupEmailController.text.trim(),
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(result.message),
-            backgroundColor: AppColors.error,
-          ),
-        );
+        NotificationHelper.showError(context, result.message);
       }
       return;
     }
@@ -126,12 +122,11 @@ class _LoginScreenState extends State<LoginScreen>
         _isLoading = false;
         if (result.success) _otpSent = true;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(result.message),
-          backgroundColor: result.success ? AppColors.primary : AppColors.error,
-        ),
-      );
+      if (result.success) {
+        NotificationHelper.showSuccess(context, result.message);
+      } else {
+        NotificationHelper.showError(context, result.message);
+      }
       return;
     }
 
@@ -147,12 +142,7 @@ class _LoginScreenState extends State<LoginScreen>
       if (result.success) {
         Navigator.pushNamedAndRemoveUntil(context, '/home', (r) => false);
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(result.message),
-            backgroundColor: AppColors.error,
-          ),
-        );
+        NotificationHelper.showError(context, result.message);
       }
       return;
     }
@@ -169,24 +159,14 @@ class _LoginScreenState extends State<LoginScreen>
       Navigator.pushNamedAndRemoveUntil(context, '/home', (r) => false);
     } else if (result.statusCode == 403) {
       // Email not verified — take them to the OTP screen
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(result.message),
-          backgroundColor: AppColors.error,
-        ),
-      );
+      NotificationHelper.showError(context, result.message);
       Navigator.pushNamed(
         context,
         '/verify-otp',
         arguments: _phoneController.text.trim(),
       );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(result.message),
-          backgroundColor: AppColors.error,
-        ),
-      );
+      NotificationHelper.showError(context, result.message);
     }
   }
 
@@ -285,35 +265,44 @@ class _LoginScreenState extends State<LoginScreen>
                 AppButton(
                   label: step == 'email' ? 'Send OTP' : 'Verify',
                   width: 120,
-                  onPressed: () {
+                  onPressed: () async {
                     if (step == 'email') {
                       if (emailCtrl.text.isEmpty ||
                           !emailCtrl.text.contains('@')) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Enter a valid email'),
-                            backgroundColor: AppColors.error,
-                          ),
+                        NotificationHelper.showError(
+                          context,
+                          'Enter a valid email',
                         );
                         return;
                       }
-                      setStateDialog(() => step = 'otp');
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('OTP sent to email! Check your inbox.'),
-                          backgroundColor: AppColors.primary,
-                        ),
+
+                      setStateDialog(() => _isLoading = true);
+                      final res = await AuthService.requestForgotPasswordOtp(
+                        email: emailCtrl.text.trim(),
                       );
+                      setStateDialog(() => _isLoading = false);
+
+                      if (res.success) {
+                        setStateDialog(() => step = 'otp');
+                        NotificationHelper.showSuccess(context, res.message);
+                      } else {
+                        NotificationHelper.showError(context, res.message);
+                      }
                     } else {
                       if (otpCtrl.text.length == 6) {
                         Navigator.pop(context); // Close dialog
-                        Navigator.pushNamed(context, '/reset-password');
+                        Navigator.pushNamed(
+                          context,
+                          '/reset-password',
+                          arguments: {
+                            'email': emailCtrl.text.trim(),
+                            'otp': otpCtrl.text.trim(),
+                          },
+                        );
                       } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Invalid OTP. Please try 1234.'),
-                            backgroundColor: AppColors.error,
-                          ),
+                        NotificationHelper.showError(
+                          context,
+                          'Please enter a valid 6-digit OTP',
                         );
                       }
                     }

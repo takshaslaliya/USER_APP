@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
@@ -309,46 +310,63 @@ class AuthService {
   }
 
   // ─────────────────────────────────────────────────────────────────────────
-  // 8. Update user profile — PUT /api/user/profile
+  // 8. Update Profile — PUT /api/user/profile (Multipart)
   // ─────────────────────────────────────────────────────────────────────────
 
-  static Future<AuthResult> updateProfile(Map<String, dynamic> body) async {
+  static Future<AuthResult> updateProfile({
+    String? fullName,
+    File? photo,
+  }) async {
     try {
-      final headers = await getAuthHeaders();
-      final response = await http
-          .put(
-            Uri.parse('${AppConfig.userUrl}/profile'),
-            headers: headers,
-            body: jsonEncode(body),
-          )
-          .timeout(const Duration(seconds: 15));
-
-      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
-      Map<String, dynamic>? finalUserData =
-          decoded['data'] as Map<String, dynamic>?;
-
-      if (response.statusCode == 200 &&
-          decoded['success'] == true &&
-          finalUserData != null) {
-        // Merge with current local data to avoid losing fields not returned by API
-        final currentUser = await getUser();
-        final currentToken = await getToken();
-        if (currentUser != null && currentToken != null) {
-          finalUserData = {...currentUser, ...finalUserData};
-          await saveSession(currentToken, finalUserData);
-        } else if (currentToken != null) {
-          await saveSession(currentToken, finalUserData);
-        }
+      final token = await getToken();
+      if (token == null) {
+        return AuthResult(success: false, message: 'Not logged in');
       }
 
-      return AuthResult(
-        success: decoded['success'] == true,
-        message:
-            decoded['message'] ??
-            (decoded['success'] == true ? 'Profile updated' : 'Update failed'),
-        data: finalUserData,
-      );
+      final uri = Uri.parse('${AppConfig.userUrl}/profile');
+      final request = http.MultipartRequest('PUT', uri);
+
+      // Add Headers
+      request.headers['Authorization'] = 'Bearer $token';
+
+      // Add text fields
+      if (fullName != null) {
+        request.fields['full_name'] = fullName;
+      }
+
+      // Add image file
+      if (photo != null) {
+        final photoPart = await http.MultipartFile.fromPath(
+          'photo',
+          photo.path,
+        );
+        request.files.add(photoPart);
+      }
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+
+      if (response.statusCode == 200 && decoded['success'] == true) {
+        // Save updated user data locally
+        final userData = decoded['data'] as Map<String, dynamic>?;
+        if (userData != null) {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString(_userKey, jsonEncode(userData));
+        }
+        return AuthResult(
+          success: true,
+          message: decoded['message'] ?? 'Profile updated',
+          data: userData,
+        );
+      } else {
+        return AuthResult(
+          success: false,
+          message: decoded['message'] ?? 'Failed to update profile',
+        );
+      }
     } catch (e) {
+      debugPrint('UpdateProfile Error: $e');
       return AuthResult(
         success: false,
         message: 'Network error. Please try again.',
@@ -384,5 +402,69 @@ class AuthService {
         message: 'Network error. Please try again.',
       );
     }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 10. Settle Transactions — POST /api/settlement/settle
+  // ─────────────────────────────────────────────────────────────────────────
+
+  static Future<AuthResult> settleTransactions(String id) async {
+    try {
+      final headers = await getAuthHeaders();
+      final response = await http
+          .post(
+            Uri.parse('${AppConfig.settlementUrl}/settle'),
+            headers: headers,
+            body: jsonEncode({'id': id}),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+
+      return AuthResult(
+        success: decoded['success'] == true,
+        message: decoded['message'] ?? 'Settled',
+        data: decoded,
+      );
+    } catch (e) {
+      return AuthResult(
+        success: false,
+        message: 'Network error. Please try again.',
+      );
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 11. Forgot Password Request — POST /api/auth/forgot-password/request
+  // ─────────────────────────────────────────────────────────────────────────
+
+  static Future<AuthResult> requestForgotPasswordOtp({
+    required String email,
+  }) async {
+    final res = await _post('/forgot-password/request', {'email': email});
+    return AuthResult(
+      success: res['success'] == true,
+      message: res['message'] ?? 'Unknown error',
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 12. Reset Password — POST /api/auth/forgot-password/reset
+  // ─────────────────────────────────────────────────────────────────────────
+
+  static Future<AuthResult> resetPassword({
+    required String email,
+    required String otp,
+    required String password,
+  }) async {
+    final res = await _post('/forgot-password/reset', {
+      'email': email,
+      'otp': otp,
+      'password': password,
+    });
+    return AuthResult(
+      success: res['success'] == true,
+      message: res['message'] ?? 'Unknown error',
+    );
   }
 }

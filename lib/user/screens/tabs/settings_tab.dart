@@ -5,12 +5,13 @@ import 'package:splitease_test/core/services/auth_service.dart';
 import 'package:splitease_test/core/services/whatsapp_service.dart';
 import 'package:splitease_test/user/widgets/whatsapp_link_sheet.dart';
 import 'package:splitease_test/core/theme/app_theme.dart';
-import 'package:splitease_test/core/models/achievement_model.dart';
-import 'package:splitease_test/core/services/achievement_service.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:splitease_test/shared/utils/notification_helper.dart';
+import 'package:splitease_test/core/providers/data_refresh_provider.dart';
+import 'dart:async';
 
 class SettingsTab extends StatefulWidget {
   const SettingsTab({super.key});
@@ -22,15 +23,38 @@ class SettingsTab extends StatefulWidget {
 class _SettingsTabState extends State<SettingsTab> {
   bool _isWhatsAppLinked = false;
   UserModel? _user;
-  List<AchievementModel> _achievements = [];
   bool _isLoading = false;
   String? _profileImagePath;
+  Timer? _refreshTimer;
 
   @override
   void initState() {
     super.initState();
     _loadUser();
     _loadProfileImage();
+
+    // Handle global refresh signal
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<DataRefreshProvider>().addListener(_loadUser);
+      }
+    });
+
+    // Start polling every 30 seconds for settings (less frequent)
+    _refreshTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
+      if (mounted) {
+        _loadUser(isPolling: true);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    try {
+      context.read<DataRefreshProvider>().removeListener(_loadUser);
+    } catch (_) {}
+    super.dispose();
   }
 
   Future<void> _loadProfileImage() async {
@@ -42,19 +66,18 @@ class _SettingsTabState extends State<SettingsTab> {
     }
   }
 
-  Future<void> _loadUser() async {
-    setState(() => _isLoading = true);
+  Future<void> _loadUser({bool isPolling = false}) async {
+    if (isPolling && _isLoading) return;
+    if (!isPolling) setState(() => _isLoading = true);
 
     // Load profile and whatsapp status in parallel
     final results = await Future.wait([
       AuthService.getProfile(),
       WhatsAppService.getStatus(),
-      AchievementService.fetchAchievements(),
     ]);
 
     final profileRes = results[0] as AuthResult;
     final whatsappRes = results[1] as WhatsAppResult;
-    final achievementsData = results[2] as List<AchievementModel>;
 
     if (mounted) {
       setState(() {
@@ -64,33 +87,13 @@ class _SettingsTabState extends State<SettingsTab> {
           // Sync WhatsApp status from profile
           _isWhatsAppLinked = _user!.whatsappConnected;
         } else if (!profileRes.success) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(profileRes.message),
-              backgroundColor: AppColors.error,
-            ),
-          );
+          NotificationHelper.showError(context, profileRes.message);
         }
 
-        // Fallback/Update if the dedicated WhatsApp status call returned different/more specific info
         if (whatsappRes.success && whatsappRes.data != null) {
           _isWhatsAppLinked = whatsappRes.data!['status'] == 'connected';
         }
-        _achievements = achievementsData;
       });
-    }
-  }
-
-  _AchievementUIConfig _getAchievementConfig(String type) {
-    switch (type) {
-      case 'regular_split':
-        return _AchievementUIConfig(Icons.receipt_long_rounded, Colors.amber);
-      case 'sub_split':
-        return _AchievementUIConfig(Icons.account_tree_rounded, Colors.green);
-      case 'app_usage':
-        return _AchievementUIConfig(Icons.check_circle_rounded, Colors.blue);
-      default:
-        return _AchievementUIConfig(Icons.star_rounded, Colors.purple);
     }
   }
 
@@ -108,15 +111,24 @@ class _SettingsTabState extends State<SettingsTab> {
       );
 
       if (image != null) {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('profile_image_path', image.path);
+        final file = File(image.path);
+        setState(() => _isLoading = true);
+        final res = await AuthService.updateProfile(photo: file);
         if (mounted) {
           setState(() {
-            _profileImagePath = image.path;
+            _isLoading = false;
+            if (res.success && res.data != null) {
+              context.read<DataRefreshProvider>().signalRefresh();
+              _user = UserModel.fromJson(res.data!);
+              _profileImagePath = image.path;
+              NotificationHelper.showSuccess(
+                context,
+                'Profile picture updated successfully!',
+              );
+            } else {
+              NotificationHelper.showError(context, res.message);
+            }
           });
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Profile picture updated locally')),
-          );
         }
       }
     } else if (status.isPermanentlyDenied) {
@@ -146,9 +158,7 @@ class _SettingsTabState extends State<SettingsTab> {
       }
     } else {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Gallery permission is required')),
-        );
+        NotificationHelper.showError(context, 'Gallery permission is required');
       }
     }
   }
@@ -265,26 +275,20 @@ class _SettingsTabState extends State<SettingsTab> {
 
   Future<void> _updateProfileMap(Map<String, dynamic> body) async {
     setState(() => _isLoading = true);
-    final res = await AuthService.updateProfile(body);
+    final res = await AuthService.updateProfile(fullName: body['full_name']);
     if (mounted) {
       setState(() {
         _isLoading = false;
         if (res.success && res.data != null) {
+          context.read<DataRefreshProvider>().signalRefresh();
           _user = UserModel.fromJson(res.data!);
           _isWhatsAppLinked = _user!.whatsappConnected;
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Profile updated successfully!'),
-              backgroundColor: AppColors.primary,
-            ),
+          NotificationHelper.showSuccess(
+            context,
+            'Profile updated successfully!',
           );
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(res.message),
-              backgroundColor: AppColors.error,
-            ),
-          );
+          NotificationHelper.showError(context, res.message);
         }
       });
     }
@@ -307,11 +311,9 @@ class _SettingsTabState extends State<SettingsTab> {
     if (result == true) {
       setState(() => _isWhatsAppLinked = true);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('WhatsApp Account Linked Successfully!'),
-          backgroundColor: AppColors.whatsapp,
-        ),
+      NotificationHelper.showSuccess(
+        context,
+        'WhatsApp Account Linked Successfully!',
       );
     }
   }
@@ -349,12 +351,11 @@ class _SettingsTabState extends State<SettingsTab> {
           _isWhatsAppLinked = false;
         }
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(res.message),
-          backgroundColor: res.success ? AppColors.primary : AppColors.error,
-        ),
-      );
+      if (res.success) {
+        NotificationHelper.showSuccess(context, res.message);
+      } else {
+        NotificationHelper.showError(context, res.message);
+      }
     }
   }
 
@@ -592,80 +593,6 @@ class _SettingsTabState extends State<SettingsTab> {
             ),
             SizedBox(height: 16),
 
-            // Stats Row
-            Row(
-              children: [
-                _StatBox(
-                  label: 'Total Splits',
-                  value: '${_user?.totalSplits ?? 0}',
-                  icon: Icons.receipt_long_rounded,
-                  surfaceColor: surfaceColor,
-                  textColor: textColor,
-                  subColor: subColor,
-                  isDark: isDark,
-                ),
-                SizedBox(width: 16),
-                _StatBox(
-                  label: 'Joined',
-                  value: _user?.createdAt != null
-                      ? '${_user!.createdAt!.month}/${_user!.createdAt!.year}'
-                      : 'N/A',
-                  icon: Icons.calendar_today_rounded,
-                  surfaceColor: surfaceColor,
-                  textColor: textColor,
-                  subColor: subColor,
-                  isDark: isDark,
-                ),
-              ],
-            ),
-
-            SizedBox(height: 32),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Achievements',
-                style: TextStyle(
-                  color: textColor,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-            SizedBox(height: 12),
-            SizedBox(
-              height: 140,
-              child: _achievements.isEmpty
-                  ? Center(
-                      child: Text(
-                        'No achievements found',
-                        style: TextStyle(color: subColor, fontSize: 13),
-                      ),
-                    )
-                  : ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: _achievements.length,
-                      itemBuilder: (context, index) {
-                        final a = _achievements[index];
-                        final config = _getAchievementConfig(a.type);
-                        return Padding(
-                          padding: EdgeInsets.only(
-                            left: index == 0 ? 28 : 0,
-                            right: 12,
-                          ),
-                          child: Opacity(
-                            opacity: a.isUnlocked ? 1.0 : 0.5,
-                            child: _BadgeCard(
-                              icon: config.icon,
-                              title: a.title,
-                              subtitle: a.description,
-                              color: a.isUnlocked ? config.color : subColor,
-                              isDark: isDark,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-            ),
             SizedBox(height: 32),
             Align(
               alignment: Alignment.centerLeft,
@@ -948,68 +875,6 @@ class _SettingsTabState extends State<SettingsTab> {
   }
 }
 
-class _StatBox extends StatelessWidget {
-  final String label;
-  final String value;
-  final IconData icon;
-  final Color surfaceColor;
-  final Color textColor;
-  final Color subColor;
-  final bool isDark;
-
-  const _StatBox({
-    required this.label,
-    required this.value,
-    required this.icon,
-    required this.surfaceColor,
-    required this.textColor,
-    required this.subColor,
-    required this.isDark,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: Container(
-        padding: EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: surfaceColor,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isDark
-                ? AppColors.darkSurfaceVariant
-                : AppColors.lightSurfaceVariant,
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, color: AppColors.primary, size: 24),
-            SizedBox(height: 12),
-            Text(
-              value,
-              style: TextStyle(
-                color: textColor,
-                fontSize: 20,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            SizedBox(height: 2),
-            Text(
-              label,
-              style: TextStyle(
-                color: subColor,
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class _InfoRow extends StatelessWidget {
   final bool isDark;
   final IconData icon;
@@ -1118,75 +983,4 @@ class _ThemeCircle extends StatelessWidget {
       ),
     );
   }
-}
-
-class _BadgeCard extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final Color color;
-  final bool isDark;
-
-  const _BadgeCard({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.color,
-    required this.isDark,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 120,
-      padding: EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDark
-              ? AppColors.darkSurfaceVariant
-              : AppColors.lightSurfaceVariant,
-        ),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min, // Added to prevent overflow
-        children: [
-          Icon(icon, color: color, size: 30), // Slightly smaller icon
-          SizedBox(height: 6), // Slightly smaller spacing
-          Flexible(
-            child: Text(
-              title,
-              style: TextStyle(
-                color: isDark ? AppColors.darkText : AppColors.lightText,
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-              ),
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          SizedBox(height: 2),
-          Text(
-            subtitle,
-            style: TextStyle(
-              color: isDark ? AppColors.darkSubtext : AppColors.lightSubtext,
-              fontSize: 10,
-              fontWeight: FontWeight.w500,
-            ),
-            textAlign: TextAlign.center,
-            maxLines: 2, // Allow wrapping but limit it
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _AchievementUIConfig {
-  final IconData icon;
-  final Color color;
-  _AchievementUIConfig(this.icon, this.color);
 }

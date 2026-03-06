@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:convert';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
@@ -12,6 +13,9 @@ import 'package:splitease_test/core/theme/app_theme.dart';
 import 'package:splitease_test/user/screens/add_expense_screen.dart';
 import 'package:splitease_test/user/screens/expense_details_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:splitease_test/shared/utils/notification_helper.dart';
+import 'package:provider/provider.dart';
+import 'package:splitease_test/core/providers/data_refresh_provider.dart';
 
 class GroupDetailsScreen extends StatefulWidget {
   final GroupModel group;
@@ -27,6 +31,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
   bool _isLoading = false;
 
   bool get _isCreator => !_group.isShared;
+  Timer? _refreshTimer;
 
   @override
   void initState() {
@@ -34,6 +39,33 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
     _group = widget.group;
     _refreshGroup();
     _loadLocalGroupIcon();
+
+    // Handle global refresh signal
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<DataRefreshProvider>().addListener(_refreshGroupListener);
+      }
+    });
+
+    // Start polling every 10 seconds for details
+    _refreshTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
+      if (mounted) {
+        _refreshGroup(isPolling: true);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    try {
+      context.read<DataRefreshProvider>().removeListener(_refreshGroupListener);
+    } catch (_) {}
+    super.dispose();
+  }
+
+  void _refreshGroupListener() {
+    if (mounted) _refreshGroup();
   }
 
   Future<void> _loadLocalGroupIcon() async {
@@ -48,11 +80,12 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
     }
   }
 
-  Future<void> _refreshGroup() async {
-    setState(() => _isLoading = true);
+  Future<void> _refreshGroup({bool isPolling = false}) async {
+    if (isPolling && _isLoading) return;
+    if (!isPolling) setState(() => _isLoading = true);
     final result = await GroupService.fetchGroupDetails(_group.id);
     if (!mounted) return;
-    setState(() => _isLoading = false);
+    if (!isPolling) setState(() => _isLoading = false);
 
     if (result.success && result.data != null) {
       final prefs = await SharedPreferences.getInstance();
@@ -105,9 +138,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
 
         if (phone.isEmpty) {
           if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Contact has no phone number')),
-          );
+          NotificationHelper.showError(context, 'Contact has no phone number');
           return;
         }
 
@@ -115,9 +146,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
       }
     } else {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Contacts permission denied')),
-      );
+      NotificationHelper.showError(context, 'Contacts permission denied');
     }
   }
 
@@ -146,37 +175,17 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
 
         final res = await GroupService.updateGroup(
           _group.id,
-          _group.name,
-          _group.totalExpense,
-          image.path,
+          photo: File(image.path),
         );
 
         if (mounted) {
-          setState(() {
-            _isLoading = false;
-            if (res.success) {
-              _group.customImageUrl = image.path;
-              // Save locally
-              SharedPreferences.getInstance().then((prefs) {
-                prefs.setString('group_icon_${_group.id}', image.path);
-              });
-            }
-          });
-
+          setState(() => _isLoading = false);
           if (res.success) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: const Text('Group icon updated successfully!'),
-                backgroundColor: AppColors.primary,
-              ),
-            );
+            context.read<DataRefreshProvider>().signalRefresh();
+            _refreshGroup(); // Reload to get the new URLs
+            NotificationHelper.showSuccess(context, 'Group icon updated!');
           } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(res.message),
-                backgroundColor: AppColors.error,
-              ),
-            );
+            NotificationHelper.showError(context, res.message);
           }
         }
       }
@@ -186,9 +195,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
       }
     } else {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Photos permission denied')),
-        );
+        NotificationHelper.showError(context, 'Photos permission denied');
       }
     }
   }
@@ -415,17 +422,11 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
     setState(() => _isLoading = false);
 
     if (res.success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(res.message),
-          backgroundColor: AppColors.primary,
-        ),
-      );
+      context.read<DataRefreshProvider>().signalRefresh();
+      NotificationHelper.showSuccess(context, res.message);
       _refreshGroup();
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(res.message), backgroundColor: AppColors.error),
-      );
+      NotificationHelper.showError(context, res.message);
     }
   }
 
@@ -577,11 +578,6 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
     );
   }
 
-  @override
-  void dispose() {
-    super.dispose();
-  }
-
   Widget _buildExpenseTile({
     required String title,
     required String amount,
@@ -713,11 +709,11 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
                 decoration: BoxDecoration(
                   color: AppColors.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
-                  image: _group.customImageUrl != null
+                  image: _group.bestPhoto != null
                       ? DecorationImage(
                           image:
                               () {
-                                    final url = _group.customImageUrl!;
+                                    final url = _group.bestPhoto!;
                                     if (url.startsWith('http') ||
                                         url.startsWith('blob:')) {
                                       return NetworkImage(url);
@@ -735,7 +731,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
                         )
                       : null,
                 ),
-                child: _group.customImageUrl == null
+                child: _group.bestPhoto == null
                     ? Center(
                         child: Material(
                           color: Colors.transparent,
@@ -816,14 +812,13 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
 
                           if (res.success) {
                             if (!screenContext.mounted) return;
+                            screenContext
+                                .read<DataRefreshProvider>()
+                                .signalRefresh();
                             Navigator.pop(screenContext); // Go back to Home
-                            messenger.showSnackBar(
-                              SnackBar(
-                                content: const Text(
-                                  'Group deleted successfully',
-                                ),
-                                backgroundColor: AppColors.primary,
-                              ),
+                            NotificationHelper.showSuccess(
+                              screenContext,
+                              'Group deleted successfully',
                             );
                           } else {
                             if (!screenContext.mounted) return;

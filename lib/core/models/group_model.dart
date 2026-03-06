@@ -8,6 +8,9 @@ class GroupModel {
   final String description;
   final String? parentId;
   String? customImageUrl;
+  final String? groupPhotoUrl;
+  final String? groupPhotoBase64;
+  final String? groupPhotoDeleteUrl;
   final String creatorId;
   final DateTime createdDate;
   final List<MemberModel> members;
@@ -26,6 +29,9 @@ class GroupModel {
     this.description = '',
     this.parentId,
     this.customImageUrl,
+    this.groupPhotoUrl,
+    this.groupPhotoBase64,
+    this.groupPhotoDeleteUrl,
     required this.creatorId,
     required this.createdDate,
     required this.members,
@@ -117,6 +123,9 @@ class GroupModel {
       description: json['description']?.toString() ?? '',
       parentId: json['parent_id']?.toString(),
       customImageUrl: json['custom_image_url']?.toString(),
+      groupPhotoUrl: json['group_photo_url']?.toString(),
+      groupPhotoBase64: json['group_photo_base64']?.toString(),
+      groupPhotoDeleteUrl: json['group_photo_delete_url']?.toString(),
       creatorId: json['created_by']?.toString() ?? '',
       createdDate: json['created_at'] != null
           ? DateTime.tryParse(json['created_at'].toString()) ?? DateTime.now()
@@ -150,4 +159,13 @@ class GroupModel {
       displayTotal > 0 ? (paidAmount / displayTotal).clamp(0, 1) : 0;
 
   int get paidCount => members.where((m) => m.isPaid).length;
+
+  String? get bestPhoto =>
+      (customImageUrl != null && customImageUrl!.isNotEmpty)
+      ? customImageUrl
+      : (groupPhotoUrl != null && groupPhotoUrl!.isNotEmpty)
+      ? groupPhotoUrl
+      : (groupPhotoBase64 != null && groupPhotoBase64!.isNotEmpty)
+      ? groupPhotoBase64
+      : null;
 }

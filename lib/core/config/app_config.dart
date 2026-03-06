@@ -24,6 +24,9 @@ class AppConfig {
   /// Achievements API endpoints
   static const String achievementsUrl = '$apiBaseUrl/achievements';
 
+  /// Settlement API endpoints
+  static const String settlementUrl = '$apiBaseUrl/settlement';
+
   /// Admin API endpoints
   static const String adminUrl = '$apiBaseUrl/admin';
 }

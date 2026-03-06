@@ -15,6 +15,10 @@ class UserModel {
   final bool isUsingWhatsApp;
   final bool whatsappConnected;
 
+  final String? profilePhotoUrl;
+  final String? profilePhotoBase64;
+  final String? profilePhotoDeleteUrl;
+
   const UserModel({
     required this.id,
     required this.email,
@@ -29,6 +33,9 @@ class UserModel {
     this.isActive = true,
     this.isUsingWhatsApp = false,
     this.whatsappConnected = false,
+    this.profilePhotoUrl,
+    this.profilePhotoBase64,
+    this.profilePhotoDeleteUrl,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
@@ -48,6 +55,9 @@ class UserModel {
       isActive: json['is_active'] ?? true,
       isUsingWhatsApp: json['is_using_whatsapp'] ?? false,
       whatsappConnected: json['whatsapp_connected'] ?? false,
+      profilePhotoUrl: json['profile_photo_url'],
+      profilePhotoBase64: json['profile_photo_base64'],
+      profilePhotoDeleteUrl: json['profile_photo_delete_url'],
     );
   }
 
@@ -66,6 +76,9 @@ class UserModel {
       'is_active': isActive,
       'is_using_whatsapp': isUsingWhatsApp,
       'whatsapp_connected': whatsappConnected,
+      'profile_photo_url': profilePhotoUrl,
+      'profile_photo_base64': profilePhotoBase64,
+      'profile_photo_delete_url': profilePhotoDeleteUrl,
     };
   }
 

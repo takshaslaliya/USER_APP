@@ -80,57 +80,6 @@ class GroupService {
     }
   }
 
-  static Future<GroupResult> _multipartRequest(
-    String method,
-    String path, {
-    Map<String, String>? fields,
-    String? filePath,
-    String fileField = 'custom_image_url',
-  }) async {
-    try {
-      final headers = await AuthService.getAuthHeaders();
-      // Remove Content-Type to let http package set it with boundary
-      headers.remove('Content-Type');
-
-      final uri = Uri.parse('$_baseUrl$path');
-      final request = http.MultipartRequest(method, uri);
-      request.headers.addAll(headers);
-
-      if (fields != null) {
-        request.fields.addAll(fields);
-      }
-
-      if (filePath != null && filePath.isNotEmpty) {
-        request.files.add(
-          await http.MultipartFile.fromPath(fileField, filePath),
-        );
-      }
-
-      debugPrint('GroupService Multipart: $method $uri');
-      final streamedResponse = await request.send().timeout(
-        const Duration(seconds: 30),
-      );
-      final response = await http.Response.fromStream(streamedResponse);
-
-      debugPrint('GroupService Multipart Result: ${response.statusCode}');
-
-      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
-      return GroupResult(
-        success: decoded['success'] == true,
-        message: decoded['message'] ?? '',
-        data: decoded['data'],
-        statusCode: response.statusCode,
-      );
-    } catch (e) {
-      debugPrint('GroupService Multipart Error: $e');
-      return GroupResult(
-        success: false,
-        message: 'Upload error ($e). Please try again.',
-        statusCode: 0,
-      );
-    }
-  }
-
   // 1. Create Main Group
   static Future<GroupResult> createGroup(
     String name,
@@ -357,77 +306,50 @@ class GroupService {
 
   // 5. Update Group
   static Future<GroupResult> updateGroup(
-    String groupId,
+    String groupId, {
     String? name,
-    double? totalExpense,
-    String? customImageUrl,
-  ) async {
-    // Check if customImageUrl is a local file path
-    bool isFile =
-        customImageUrl != null &&
-        (customImageUrl.startsWith('/') ||
-            customImageUrl.contains('cache') ||
-            customImageUrl.contains('picker'));
+    File? photo,
+  }) async {
+    try {
+      final token = await AuthService.getToken();
+      if (token == null) {
+        return GroupResult(success: false, message: 'Not logged in');
+      }
 
-    if (isFile) {
-      try {
-        // Fallback approach: Try sending as Base64 in JSON first because some proxies reject PUT Multipart
-        final cleanPath = customImageUrl.replaceFirst('file://', '');
-        final file = File(cleanPath);
-        final bytes = await file.readAsBytes();
-        final base64Image = base64Encode(bytes);
-        final String ext = customImageUrl.split('.').last.toLowerCase();
-        final String mimeType = ext == 'png' ? 'image/png' : 'image/jpeg';
-        final String dataUri = 'data:$mimeType;base64,$base64Image';
+      final uri = Uri.parse('$_baseUrl/$groupId');
+      final request = http.MultipartRequest('PUT', uri);
 
-        final Map<String, dynamic> body = {
-          'name': name ?? 'Updated Group',
-          'custom_image_url': dataUri,
-        };
-        // Also send total_expense as number
-        if (totalExpense != null) body['total_expense'] = totalExpense;
+      request.headers['Authorization'] = 'Bearer $token';
 
-        // EXPERIMENT: Some Appwrite proxies expect data nested in 'data' field
-        final Map<String, dynamic> wrappedBody = {
-          ...body,
-          'data': body, // try both top-level and nested to be sure
-        };
+      if (name != null) {
+        request.fields['name'] = name;
+      }
 
-        debugPrint('GroupService: Attempting Base64 Upload for icon');
-        return _request('PUT', '/$groupId', body: wrappedBody);
-      } catch (e) {
-        debugPrint(
-          'GroupService: Base64 encoding failed, falling back to multipart',
+      if (photo != null) {
+        final photoPart = await http.MultipartFile.fromPath(
+          'photo',
+          photo.path,
         );
-        // fallthrough to multipart if base64 fails
+        request.files.add(photoPart);
       }
 
-      final Map<String, String> fields = {'name': name ?? 'Group'};
-      if (totalExpense != null) {
-        fields['total_expense'] = totalExpense.toString();
-      }
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
 
-      return _multipartRequest(
-        'PUT',
-        '/$groupId',
-        fields: {
-          ...fields,
-          'data': jsonEncode(
-            fields,
-          ), // try sending JSON serialized version in a field too
-        },
-        filePath: customImageUrl,
-        fileField: 'custom_image_url',
+      return GroupResult(
+        success: decoded['success'] == true,
+        message: decoded['message'] ?? '',
+        data: decoded['data'],
+        statusCode: response.statusCode,
       );
-    } else {
-      final Map<String, dynamic> body = {};
-      if (name != null) body['name'] = name;
-      if (totalExpense != null) body['total_expense'] = totalExpense;
-      if (customImageUrl != null) body['custom_image_url'] = customImageUrl;
-
-      final Map<String, dynamic> wrappedBody = {...body, 'data': body};
-
-      return _request('PUT', '/$groupId', body: wrappedBody);
+    } catch (e) {
+      debugPrint('GroupService updateGroup Error: $e');
+      return GroupResult(
+        success: false,
+        message: 'Network error ($e). Please check your connection.',
+        statusCode: 0,
+      );
     }
   }
 
@@ -491,5 +413,26 @@ class GroupService {
       '/sub-groups/$subGroupId/members/$memberId/status',
       body: {'is_paid': isPaid},
     );
+  }
+
+  // 12. Fetch Personal Settlements (NEW)
+  static Future<GroupResult> fetchSettlements() async {
+    try {
+      final headers = await AuthService.getAuthHeaders();
+      final uri = Uri.parse(AppConfig.settlementUrl);
+      final response = await http
+          .get(uri, headers: headers)
+          .timeout(const Duration(seconds: 15));
+
+      final decoded = jsonDecode(response.body);
+      return GroupResult(
+        success: decoded['success'] == true,
+        message: decoded['message'] ?? '',
+        data: decoded['data'],
+        statusCode: response.statusCode,
+      );
+    } catch (e) {
+      return GroupResult(success: false, message: 'Network error: $e');
+    }
   }
 }

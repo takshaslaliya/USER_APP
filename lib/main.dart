@@ -11,6 +11,9 @@ import 'package:splitease_test/user/screens/home_screen.dart';
 import 'package:splitease_test/user/screens/group_details_screen.dart';
 import 'package:splitease_test/core/models/group_model.dart';
 
+import 'package:splitease_test/core/providers/navigation_provider.dart';
+import 'package:splitease_test/core/providers/data_refresh_provider.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -24,11 +27,21 @@ void main() async {
     initialThemeName: initialThemeName,
   );
 
+  final navigationProvider = NavigationProvider();
+
   final loggedIn = await AuthService.isLoggedIn();
 
   runApp(
-    ChangeNotifierProvider<ThemeProvider>.value(
-      value: themeProvider,
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider<ThemeProvider>.value(value: themeProvider),
+        ChangeNotifierProvider<NavigationProvider>.value(
+          value: navigationProvider,
+        ),
+        ChangeNotifierProvider<DataRefreshProvider>(
+          create: (_) => DataRefreshProvider(),
+        ),
+      ],
       child: SplitEaseApp(initialRoute: loggedIn ? '/home' : '/'),
     ),
   );

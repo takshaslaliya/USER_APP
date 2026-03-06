@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:splitease_test/core/services/auth_service.dart';
 import 'package:splitease_test/core/theme/app_theme.dart';
 import 'package:splitease_test/shared/widgets/app_button.dart';
+import 'package:splitease_test/shared/utils/notification_helper.dart';
 
 /// Shown after successful signup — user must enter the OTP sent to their email.
 class VerifyOtpScreen extends StatefulWidget {
@@ -37,21 +38,11 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
     setState(() => _isLoading = false);
 
     if (result.success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(result.message),
-          backgroundColor: AppColors.paid,
-        ),
-      );
+      NotificationHelper.showSuccess(context, result.message);
       // Navigate to login after verification
       Navigator.pushNamedAndRemoveUntil(context, '/login', (r) => false);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(result.message),
-          backgroundColor: AppColors.error,
-        ),
-      );
+      NotificationHelper.showError(context, result.message);
     }
   }
 
@@ -60,12 +51,11 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
     final result = await AuthService.resendSignupOtp(email: widget.email);
     if (!mounted) return;
     setState(() => _isResending = false);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(result.message),
-        backgroundColor: result.success ? AppColors.primary : AppColors.error,
-      ),
-    );
+    if (result.success) {
+      NotificationHelper.showSuccess(context, result.message);
+    } else {
+      NotificationHelper.showError(context, result.message);
+    }
   }
 
   @override

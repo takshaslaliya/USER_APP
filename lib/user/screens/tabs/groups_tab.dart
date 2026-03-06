@@ -5,6 +5,9 @@ import 'package:splitease_test/core/models/group_model.dart';
 import 'package:splitease_test/core/services/group_service.dart';
 import 'package:splitease_test/core/theme/app_theme.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:provider/provider.dart';
+import 'dart:async';
+import 'package:splitease_test/core/providers/data_refresh_provider.dart';
 
 class GroupsTab extends StatefulWidget {
   const GroupsTab({super.key});
@@ -24,6 +27,7 @@ class _GroupsTabState extends State<GroupsTab>
   // Shared Groups state
   List<GroupModel> _sharedGroups = [];
   bool _sharedGroupsLoading = false;
+  Timer? _refreshTimer;
 
   @override
   void initState() {
@@ -31,11 +35,29 @@ class _GroupsTabState extends State<GroupsTab>
     _tabController = TabController(length: 2, vsync: this);
     _loadUserAndRefresh();
     _refreshSharedGroups();
+
+    // Handle global refresh signal
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<DataRefreshProvider>().addListener(_refreshAll);
+      }
+    });
+
+    // Start polling every 15 seconds
+    _refreshTimer = Timer.periodic(const Duration(seconds: 15), (timer) {
+      if (mounted) {
+        _refreshAll(isPolling: true);
+      }
+    });
   }
 
   @override
   void dispose() {
     _tabController.dispose();
+    _refreshTimer?.cancel();
+    try {
+      context.read<DataRefreshProvider>().removeListener(_refreshAll);
+    } catch (_) {}
     super.dispose();
   }
 
@@ -43,8 +65,9 @@ class _GroupsTabState extends State<GroupsTab>
     _refreshMyGroups();
   }
 
-  Future<void> _refreshMyGroups() async {
-    setState(() => _myGroupsLoading = true);
+  Future<void> _refreshMyGroups({bool isPolling = false}) async {
+    if (isPolling && _myGroupsLoading) return;
+    if (!isPolling) setState(() => _myGroupsLoading = true);
     final result = await GroupService.fetchGroups();
     if (!mounted) return;
     setState(() => _myGroupsLoading = false);
@@ -64,8 +87,9 @@ class _GroupsTabState extends State<GroupsTab>
     }
   }
 
-  Future<void> _refreshSharedGroups() async {
-    setState(() => _sharedGroupsLoading = true);
+  Future<void> _refreshSharedGroups({bool isPolling = false}) async {
+    if (isPolling && _sharedGroupsLoading) return;
+    if (!isPolling) setState(() => _sharedGroupsLoading = true);
     final result = await GroupService.fetchSharedGroups();
     if (!mounted) return;
     setState(() => _sharedGroupsLoading = false);
@@ -85,8 +109,11 @@ class _GroupsTabState extends State<GroupsTab>
     }
   }
 
-  Future<void> _refreshAll() async {
-    await Future.wait([_refreshMyGroups(), _refreshSharedGroups()]);
+  Future<void> _refreshAll({bool isPolling = false}) async {
+    await Future.wait([
+      _refreshMyGroups(isPolling: isPolling),
+      _refreshSharedGroups(isPolling: isPolling),
+    ]);
   }
 
   @override
@@ -361,20 +388,21 @@ class _GroupsTabState extends State<GroupsTab>
   }
 
   Widget _buildGroupAvatar(GroupModel group, bool isDark) {
+    final photo = group.bestPhoto;
     return Container(
       width: 50,
       height: 50,
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkBg : AppColors.lightBg,
         borderRadius: BorderRadius.circular(14),
-        image: group.customImageUrl != null
+        image: photo != null
             ? DecorationImage(
-                image: _resolveImage(group.customImageUrl!) as ImageProvider,
+                image: _resolveImage(photo) as ImageProvider,
                 fit: BoxFit.cover,
               )
             : null,
       ),
-      child: group.customImageUrl == null
+      child: photo == null
           ? Center(
               child: Text(
                 group.name.substring(0, 1).toUpperCase(),

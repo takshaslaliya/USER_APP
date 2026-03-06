@@ -1,62 +1,91 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:splitease_test/core/models/group_model.dart';
-import 'package:splitease_test/core/models/expense_model.dart';
-import 'package:splitease_test/core/services/group_service.dart';
 import 'package:splitease_test/core/services/auth_service.dart';
+import 'package:splitease_test/core/services/group_service.dart';
 import 'package:splitease_test/core/theme/app_theme.dart';
+import 'package:splitease_test/shared/utils/notification_helper.dart';
+import 'package:provider/provider.dart';
+import 'package:splitease_test/core/providers/data_refresh_provider.dart';
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Data models
 // ──────────────────────────────────────────────────────────────────────────────
 
 class PersonSettlement {
+  final String id;
   final String name;
-  final String? phoneNumber;
-  final String? userId;
-
-  double youOweThem; // Current user owes this person
-  double theyOweYou; // This person owes current user
-
-  final List<SettlementGroupDetail> groups;
-  final List<_SplitRef> allSplitRefs;
+  final String? phone;
+  final double toReceive;
+  final double toSend;
+  final double netAmount;
+  final String status; // "Takes" or "Gives"
+  final List<SettlementGroupDetail> details;
 
   PersonSettlement({
+    required this.id,
     required this.name,
-    this.phoneNumber,
-    this.userId,
-    this.youOweThem = 0,
-    this.theyOweYou = 0,
-    required this.groups,
-    required this.allSplitRefs,
+    this.phone,
+    required this.toReceive,
+    required this.toSend,
+    required this.netAmount,
+    required this.status,
+    required this.details,
   });
 
-  double get netAmount => theyOweYou - youOweThem;
+  factory PersonSettlement.fromJson(Map<String, dynamic> json) {
+    return PersonSettlement(
+      id: json['id']?.toString() ?? '',
+      name: json['name']?.toString() ?? 'Unknown User',
+      phone: json['phone']?.toString(),
+      toReceive: (json['to_receive'] ?? 0).toDouble(),
+      toSend: (json['to_send'] ?? 0).toDouble(),
+      netAmount: (json['net_total'] ?? 0).toDouble(),
+      status:
+          json['status']?.toString() ??
+          (json['net_total'] >= 0 ? 'Takes' : 'Gives'),
+      details: (json['details'] as List? ?? [])
+          .map((d) => SettlementGroupDetail.fromJson(d))
+          .toList(),
+    );
+  }
 }
 
 class SettlementGroupDetail {
-  final String groupName;
+  final String name;
   final double amount;
-  final bool youOwe; // true if you owe the group, false if they owe you
+  final String? transactionId;
+  final String? subGroupId; // Optional mapping
+  final String? memberId; // Optional mapping
 
   SettlementGroupDetail({
-    required this.groupName,
+    required this.name,
     required this.amount,
-    required this.youOwe,
+    this.transactionId,
+    this.subGroupId,
+    this.memberId,
   });
-}
 
-class _SplitRef {
-  final String subGroupId;
-  final String memberId;
-  final bool isPaid;
-  final double amount;
-  const _SplitRef({
-    required this.subGroupId,
-    required this.memberId,
-    required this.isPaid,
-    required this.amount,
-  });
+  factory SettlementGroupDetail.fromJson(Map<String, dynamic> json) {
+    // If transaction_id contains an underscore, it might be subGroupId_memberId
+    String? sgId, mId;
+    final txId = json['transaction_id']?.toString();
+    if (txId != null && txId.contains('_')) {
+      final parts = txId.split('_');
+      sgId = parts[0];
+      mId = parts[1];
+    }
+
+    return SettlementGroupDetail(
+      name: json['name']?.toString() ?? 'Expense',
+      amount: (json['amount'] ?? 0).toDouble(),
+      transactionId: txId,
+      subGroupId: sgId,
+      memberId: mId,
+    );
+  }
+
+  bool get youOwe => amount < 0;
+  double get absAmount => amount.abs();
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -73,15 +102,28 @@ class PersonalSettlementTab extends StatefulWidget {
 class _PersonalSettlementTabState extends State<PersonalSettlementTab> {
   List<PersonSettlement> _settlements = [];
   bool _isLoading = false;
-  String? _currentUserId;
-  String? _currentUserName;
   final Map<String, Timer?> _settleTimers = {};
   final Map<String, int> _countdownValues = {};
+  Timer? _refreshTimer;
 
   @override
   void initState() {
     super.initState();
     _loadData();
+
+    // Handle global refresh signal
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<DataRefreshProvider>().addListener(_loadData);
+      }
+    });
+
+    // Start polling every 15 seconds
+    _refreshTimer = Timer.periodic(const Duration(seconds: 15), (timer) {
+      if (mounted) {
+        _loadData(isPolling: true);
+      }
+    });
   }
 
   @override
@@ -89,178 +131,32 @@ class _PersonalSettlementTabState extends State<PersonalSettlementTab> {
     for (var timer in _settleTimers.values) {
       timer?.cancel();
     }
+    _refreshTimer?.cancel();
+    try {
+      context.read<DataRefreshProvider>().removeListener(_loadData);
+    } catch (_) {}
     super.dispose();
   }
 
-  Future<void> _loadData() async {
-    setState(() => _isLoading = true);
-    final user = await AuthService.getUser();
-    if (!mounted) return;
-    _currentUserId = user?['id']?.toString();
-    _currentUserName = user?['name']?.toString() ?? 'You';
+  Future<void> _loadData({bool isPolling = false}) async {
+    if (isPolling && _isLoading) return;
+    if (!isPolling) setState(() => _isLoading = true);
     await _buildSettlements();
-    if (mounted) setState(() => _isLoading = false);
+    if (mounted && !isPolling) setState(() => _isLoading = false);
   }
 
   Future<void> _buildSettlements() async {
-    // In a real app, we'd fetch from API.
-    // For now, let's use the actual data from groups but also add SAMPLE DATA as requested.
+    final result = await GroupService.fetchSettlements();
 
-    final results = await Future.wait([
-      GroupService.fetchGroups(),
-      GroupService.fetchSharedGroups(),
-    ]);
-
-    final allGroups = <GroupModel>[];
-    for (final result in results) {
-      if (result.success && result.data != null) {
-        final List<dynamic> data = result.data;
-        allGroups.addAll(data.map((g) => GroupModel.fromJson(g)));
-      }
-    }
-
-    final Map<String, PersonSettlement> accumulator = {};
-
-    // 1. Process real data
-    for (final group in allGroups) {
-      for (final expense in group.expenses) {
-        _processExpense(group, expense, accumulator);
-      }
-    }
-
-    // 2. Add Sample Data if empty (as requested)
-    if (accumulator.isEmpty) {
-      accumulator['sample_1'] = PersonSettlement(
-        name: 'Harshil Suthar',
-        theyOweYou: 1200,
-        youOweThem: 450,
-        groups: [
-          SettlementGroupDetail(
-            groupName: 'Dinner Party',
-            amount: 800,
-            youOwe: false,
-          ),
-          SettlementGroupDetail(groupName: 'Rent', amount: 400, youOwe: false),
-          SettlementGroupDetail(
-            groupName: 'Movie Night',
-            amount: 450,
-            youOwe: true,
-          ),
-        ],
-        allSplitRefs: [],
-      );
-      accumulator['sample_2'] = PersonSettlement(
-        name: 'Taksh Asalaliya',
-        theyOweYou: 0,
-        youOweThem: 600,
-        groups: [
-          SettlementGroupDetail(
-            groupName: 'Travel Budget',
-            amount: 600,
-            youOwe: true,
-          ),
-        ],
-        allSplitRefs: [],
-      );
-      accumulator['sample_3'] = PersonSettlement(
-        name: 'Rudrabhai AVD',
-        theyOweYou: 2500,
-        youOweThem: 0,
-        groups: [
-          SettlementGroupDetail(groupName: 'Food', amount: 2500, youOwe: false),
-        ],
-        allSplitRefs: [],
-      );
-    }
-
-    final settlements = accumulator.values.toList()
-      ..sort(
-        (a, b) => (b.theyOweYou + b.youOweThem).compareTo(
-          a.theyOweYou + a.youOweThem,
-        ),
-      );
-
-    if (mounted) setState(() => _settlements = settlements);
-  }
-
-  void _processExpense(
-    GroupModel group,
-    ExpenseModel expense,
-    Map<String, PersonSettlement> acc,
-  ) {
-    if (expense.splits.isEmpty) return;
-
-    final isCurUserPayer = expense.paidById == _currentUserId;
-
-    if (isCurUserPayer) {
-      for (final split in expense.splits) {
-        if (split.isPaid) continue;
-        final key = split.name.trim().toLowerCase();
-        if (key == (_currentUserName?.toLowerCase() ?? '')) continue;
-
-        acc.putIfAbsent(
-          key,
-          () =>
-              PersonSettlement(name: split.name, groups: [], allSplitRefs: []),
-        );
-
-        acc[key]!.theyOweYou += split.amount;
-        acc[key]!.groups.add(
-          SettlementGroupDetail(
-            groupName: group.name,
-            amount: split.amount,
-            youOwe: false,
-          ),
-        );
-        acc[key]!.allSplitRefs.add(
-          _SplitRef(
-            subGroupId: expense.id,
-            memberId: split.id,
-            isPaid: split.isPaid,
-            amount: split.amount,
-          ),
-        );
-      }
+    if (result.success && result.data != null) {
+      final List<dynamic> data = result.data;
+      final settlements = data
+          .map((json) => PersonSettlement.fromJson(json))
+          .toList();
+      if (mounted) setState(() => _settlements = settlements);
     } else {
-      final mySplit = expense.splits
-          .where(
-            (s) =>
-                s.name.trim().toLowerCase() ==
-                (_currentUserName?.toLowerCase() ?? ''),
-          )
-          .firstOrNull;
-      if (mySplit != null && !mySplit.isPaid) {
-        String payerName = 'Other';
-        final payerMember = group.members
-            .where(
-              (m) => m.userId == expense.paidById || m.id == expense.paidById,
-            )
-            .firstOrNull;
-        if (payerMember != null) payerName = payerMember.name;
-
-        final key = payerName.trim().toLowerCase();
-        acc.putIfAbsent(
-          key,
-          () => PersonSettlement(name: payerName, groups: [], allSplitRefs: []),
-        );
-
-        acc[key]!.youOweThem += mySplit.amount;
-        acc[key]!.groups.add(
-          SettlementGroupDetail(
-            groupName: group.name,
-            amount: mySplit.amount,
-            youOwe: true,
-          ),
-        );
-        acc[key]!.allSplitRefs.add(
-          _SplitRef(
-            subGroupId: expense.id,
-            memberId: mySplit.id,
-            isPaid: mySplit.isPaid,
-            amount: mySplit.amount,
-          ),
-        );
-      }
+      // If API fails or returns empty, we can show sample data as fallback if desired
+      if (mounted) setState(() => _settlements = []);
     }
   }
 
@@ -282,13 +178,13 @@ class _PersonalSettlementTabState extends State<PersonalSettlementTab> {
   }
 
   void _startSettlementTimer(PersonSettlement s) {
-    if (_settleTimers[s.name] != null) return;
+    if (_settleTimers[s.id] != null) return;
 
     setState(() {
-      _countdownValues[s.name] = 10;
+      _countdownValues[s.id] = 10;
     });
 
-    _settleTimers[s.name] = Timer.periodic(const Duration(seconds: 1), (
+    _settleTimers[s.id] = Timer.periodic(const Duration(seconds: 1), (
       timer,
     ) async {
       if (!mounted) {
@@ -297,56 +193,54 @@ class _PersonalSettlementTabState extends State<PersonalSettlementTab> {
       }
 
       setState(() {
-        _countdownValues[s.name] = (_countdownValues[s.name] ?? 10) - 1;
+        _countdownValues[s.id] = (_countdownValues[s.id] ?? 10) - 1;
       });
 
-      if (_countdownValues[s.name] == 0) {
+      if (_countdownValues[s.id] == 0) {
         timer.cancel();
-        _settleTimers[s.name] = null;
+        _settleTimers[s.id] = null;
         await _performActualSettle(s);
       }
     });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Settling with ${s.name} in 10 seconds...'),
-        backgroundColor: AppColors.primary,
-        action: SnackBarAction(
-          label: 'UNDO',
-          textColor: Colors.white,
-          onPressed: () {
-            setState(() {
-              _settleTimers[s.name]?.cancel();
-              _settleTimers[s.name] = null;
-              _countdownValues.remove(s.name);
-            });
-          },
-        ),
-      ),
+    // Removed notification for starting timer as per user request
+    /*
+    NotificationHelper.showInfo(
+      context,
+      'Settling with ${s.name} in 10 seconds...',
     );
+    */
+  }
+
+  void _cancelSettlementTimer(PersonSettlement s) {
+    if (_settleTimers[s.id] != null) {
+      _settleTimers[s.id]!.cancel();
+      setState(() {
+        _settleTimers[s.id] = null;
+        _countdownValues.remove(s.id);
+      });
+      NotificationHelper.showInfo(
+        context,
+        'Settlement with ${s.name} cancelled',
+      );
+    }
   }
 
   Future<void> _performActualSettle(PersonSettlement s) async {
     setState(() => _isLoading = true);
 
-    // In a real app, call API. For mocks, just reload or remove.
-    if (s.allSplitRefs.isNotEmpty) {
-      final futures = s.allSplitRefs.map(
-        (r) =>
-            GroupService.toggleMemberPaidStatus(r.subGroupId, r.memberId, true),
-      );
-      await Future.wait(futures);
-    }
+    // Call the new consolidated settlement API
+    final res = await AuthService.settleTransactions(s.id);
+    debugPrint('Settlement performed: ${res.message}');
 
     await _loadData();
     if (mounted) {
+      context.read<DataRefreshProvider>().signalRefresh();
       setState(() {
         _isLoading = false;
-        _countdownValues.remove(s.name);
+        _countdownValues.remove(s.id);
       });
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Settled with ${s.name}')));
+      NotificationHelper.showSuccess(context, 'Settled with ${s.name}');
     }
   }
 
@@ -388,9 +282,9 @@ class _PersonalSettlementTabState extends State<PersonalSettlementTab> {
             const SizedBox(height: 20),
             Expanded(
               child: ListView.builder(
-                itemCount: s.groups.length,
+                itemCount: s.details.length,
                 itemBuilder: (ctx, i) {
-                  final g = s.groups[i];
+                  final g = s.details[i];
                   return Container(
                     margin: const EdgeInsets.only(bottom: 12),
                     padding: const EdgeInsets.all(16),
@@ -404,17 +298,17 @@ class _PersonalSettlementTabState extends State<PersonalSettlementTab> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          g.groupName,
+                          g.name,
                           style: TextStyle(
                             fontWeight: FontWeight.w600,
                             color: isDark ? Colors.white70 : Colors.black54,
                           ),
                         ),
                         Text(
-                          '${g.youOwe ? '-' : '+'}₹${g.amount}',
+                          '${g.amount < 0 ? '-' : '+'}₹${g.absAmount.toStringAsFixed(0)}',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            color: g.youOwe ? Colors.red : Colors.green,
+                            color: g.amount < 0 ? Colors.red : Colors.green,
                           ),
                         ),
                       ],
@@ -467,8 +361,8 @@ class _PersonalSettlementTabState extends State<PersonalSettlementTab> {
   }
 
   Widget _buildSettlementCard(PersonSettlement s, bool isDark) {
-    final bool isTimerRunning = _settleTimers[s.name] != null;
-    final int countdown = _countdownValues[s.name] ?? 0;
+    final bool isTimerRunning = _settleTimers[s.id] != null;
+    final int countdown = _countdownValues[s.id] ?? 0;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -521,25 +415,25 @@ class _PersonalSettlementTabState extends State<PersonalSettlementTab> {
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          if (s.theyOweYou > 0)
+                          if (s.toReceive > 0.01)
                             Text(
-                              'Takes ₹${s.theyOweYou}',
+                              'Takes ₹${s.toReceive.toStringAsFixed(0)}',
                               style: const TextStyle(
                                 color: Colors.green,
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
-                          if (s.theyOweYou > 0 && s.youOweThem > 0)
+                          if (s.toReceive > 0.01 && s.toSend > 0.01)
                             Text(
                               ' • ',
                               style: TextStyle(
                                 color: isDark ? Colors.white24 : Colors.black26,
                               ),
                             ),
-                          if (s.youOweThem > 0)
+                          if (s.toSend > 0.01)
                             Text(
-                              'Gives ₹${s.youOweThem}',
+                              'Gives ₹${s.toSend.toStringAsFixed(0)}',
                               style: const TextStyle(
                                 color: Colors.red,
                                 fontSize: 12,
@@ -564,16 +458,11 @@ class _PersonalSettlementTabState extends State<PersonalSettlementTab> {
                   children: [
                     _buildAmountInfo(
                       'To Receive',
-                      s.theyOweYou,
+                      s.toReceive,
                       Colors.green,
                       isDark,
                     ),
-                    _buildAmountInfo(
-                      'To Send',
-                      s.youOweThem,
-                      Colors.red,
-                      isDark,
-                    ),
+                    _buildAmountInfo('To Send', s.toSend, Colors.red, isDark),
                     _buildAmountInfo(
                       'Net Total',
                       s.netAmount,
@@ -628,7 +517,7 @@ class _PersonalSettlementTabState extends State<PersonalSettlementTab> {
                       ],
 
                       // Paid button - Only show if they owe us money
-                      if (s.theyOweYou > 0) ...[
+                      if (s.toReceive > 0.01) ...[
                         const SizedBox(width: 8),
                         _buildActionButton(
                           label: 'Paid',
@@ -641,23 +530,43 @@ class _PersonalSettlementTabState extends State<PersonalSettlementTab> {
                   ),
                 ] else ...[
                   const SizedBox(height: 16),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Center(
-                      child: Text(
-                        'Settling in $countdown seconds...',
-                        style: TextStyle(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
+                  Row(
+                    children: [
+                      // View Settle button
+                      Expanded(
+                        child: _buildSecondaryButton(
+                          label: 'View Settle ($countdown s)',
+                          onTap: () => _showGroupDetails(s),
+                          isDark: isDark,
                         ),
                       ),
-                    ),
+                      const SizedBox(width: 8),
+                      // Undo button
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () => _cancelSettlementTimer(s),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.error.withOpacity(0.1),
+                            elevation: 0,
+                            foregroundColor: AppColors.error,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              side: BorderSide(
+                                color: AppColors.error.withOpacity(0.3),
+                              ),
+                            ),
+                          ),
+                          child: const Text(
+                            'Undo',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ],

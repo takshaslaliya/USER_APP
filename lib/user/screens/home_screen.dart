@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:splitease_test/core/providers/navigation_provider.dart';
 import 'package:splitease_test/core/theme/app_theme.dart';
 import 'package:splitease_test/user/screens/tabs/dashboard_tab.dart';
 import 'package:splitease_test/user/screens/tabs/groups_tab.dart';
@@ -15,8 +17,6 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  int _currentIndex = 0;
-
   @override
   void initState() {
     super.initState();
@@ -35,15 +35,17 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final navProvider = Provider.of<NavigationProvider>(context);
+    final currentIndex = navProvider.currentIndex;
 
     return PopScope(
       // Never allow the back gesture/button to pop this route
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
-        if (_currentIndex != 0) {
+        if (currentIndex != 0) {
           // On non-dashboard tab → go back to dashboard
-          setState(() => _currentIndex = 0);
+          navProvider.currentIndex = 0;
         }
         // On dashboard tab → do nothing (back button is fully blocked)
       },
@@ -51,12 +53,12 @@ class _HomeScreenState extends State<HomeScreen> {
         backgroundColor: isDark ? AppColors.darkBg : AppColors.lightBg,
         body: Stack(
           children: [
-            IndexedStack(index: _currentIndex, children: _tabs),
+            IndexedStack(index: currentIndex, children: _tabs),
             Positioned(
               left: 0,
               right: 0,
               bottom: 24,
-              child: _buildFloatingBottomNav(isDark),
+              child: _buildFloatingBottomNav(isDark, currentIndex, navProvider),
             ),
           ],
         ),
@@ -64,7 +66,11 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildFloatingBottomNav(bool isDark) {
+  Widget _buildFloatingBottomNav(
+    bool isDark,
+    int currentIndex,
+    NavigationProvider navProvider,
+  ) {
     return SafeArea(
       child: Container(
         margin: EdgeInsets.symmetric(horizontal: 20),
@@ -89,30 +95,66 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            _buildNavItem(0, Icons.home_rounded, isDark),
-            _buildNavItem(1, Icons.group_rounded, isDark),
+            _buildNavItem(
+              0,
+              Icons.home_rounded,
+              isDark,
+              currentIndex,
+              navProvider,
+            ),
+            _buildNavItem(
+              1,
+              Icons.group_rounded,
+              isDark,
+              currentIndex,
+              navProvider,
+            ),
 
             // Center Add Button (Index 2)
-            _buildNavItem(2, Icons.add_rounded, isDark),
+            _buildNavItem(
+              2,
+              Icons.add_rounded,
+              isDark,
+              currentIndex,
+              navProvider,
+            ),
 
             // Personal Settlement (replaces Shared Groups)
-            _buildNavItem(3, Icons.account_balance_wallet_rounded, isDark),
-            _buildNavItem(4, Icons.settings_rounded, isDark),
+            _buildNavItem(
+              3,
+              Icons.account_balance_wallet_rounded,
+              isDark,
+              currentIndex,
+              navProvider,
+            ),
+            _buildNavItem(
+              4,
+              Icons.settings_rounded,
+              isDark,
+              currentIndex,
+              navProvider,
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildNavItem(int index, IconData icon, bool isDark) {
-    final isSelected = _currentIndex == index;
+  Widget _buildNavItem(
+    int index,
+    IconData icon,
+    bool isDark,
+    int currentIndex,
+    NavigationProvider navProvider,
+  ) {
+    final isSelected = currentIndex == index;
     final color = isSelected
         ? Color(0xFF0A1628)
         : AppColors.darkSubtext; // Dark navy for selected icon
 
     return GestureDetector(
       onTap: () {
-        setState(() => _currentIndex = index);
+        navProvider.currentIndex = index;
       },
       behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(

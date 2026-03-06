@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:splitease_test/core/services/auth_service.dart';
 import 'package:splitease_test/core/theme/app_theme.dart';
 import 'package:splitease_test/shared/widgets/app_button.dart';
+import 'package:splitease_test/shared/utils/notification_helper.dart';
 
 class ResetPasswordScreen extends StatefulWidget {
   const ResetPasswordScreen({super.key});
@@ -17,6 +19,9 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   bool _obscureNew = true;
   bool _obscureConfirm = true;
   bool _isLoading = false;
+  String _email = '';
+  String _otp = '';
+  bool _initialized = false;
 
   @override
   void dispose() {
@@ -29,20 +34,35 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
-    // Simulate network delay
-    await Future.delayed(const Duration(milliseconds: 1500));
+    final res = await AuthService.resetPassword(
+      email: _email,
+      otp: _otp,
+      password: _newPasswordController.text,
+    );
     if (!mounted) return;
     setState(() => _isLoading = false);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Password reset successfully! Please log in.'),
-        backgroundColor: AppColors.paid,
-      ),
-    );
+    if (res.success) {
+      NotificationHelper.showSuccess(context, res.message);
+      // Pop back all the way to login
+      Navigator.popUntil(context, ModalRoute.withName('/login'));
+    } else {
+      NotificationHelper.showError(context, res.message);
+    }
+  }
 
-    // Pop back all the way to login
-    Navigator.popUntil(context, ModalRoute.withName('/login'));
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_initialized) {
+      final args =
+          ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+      if (args != null) {
+        _email = args['email'] ?? '';
+        _otp = args['otp'] ?? '';
+      }
+      _initialized = true;
+    }
   }
 
   @override
@@ -103,10 +123,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                     obscureText: _obscureNew,
                     decoration: InputDecoration(
                       hintText: 'New Password',
-                      prefixIcon: Icon(
-                        Icons.lock_outline_rounded,
-                        size: 20,
-                      ),
+                      prefixIcon: Icon(Icons.lock_outline_rounded, size: 20),
                       suffixIcon: IconButton(
                         icon: Icon(
                           _obscureNew
@@ -140,10 +157,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                     obscureText: _obscureConfirm,
                     decoration: InputDecoration(
                       hintText: 'Confirm Password',
-                      prefixIcon: Icon(
-                        Icons.lock_outline_rounded,
-                        size: 20,
-                      ),
+                      prefixIcon: Icon(Icons.lock_outline_rounded, size: 20),
                       suffixIcon: IconButton(
                         icon: Icon(
                           _obscureConfirm

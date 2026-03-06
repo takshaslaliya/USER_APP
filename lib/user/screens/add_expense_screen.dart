@@ -5,6 +5,9 @@ import 'package:splitease_test/core/theme/app_theme.dart';
 import 'package:splitease_test/shared/widgets/app_button.dart';
 import 'package:splitease_test/core/services/group_service.dart';
 import 'package:splitease_test/core/services/auth_service.dart';
+import 'package:splitease_test/shared/utils/notification_helper.dart';
+import 'package:provider/provider.dart';
+import 'package:splitease_test/core/providers/data_refresh_provider.dart';
 
 class AddExpenseScreen extends StatefulWidget {
   final GroupModel group;
@@ -214,9 +217,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   }
 
   void _snack(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg), backgroundColor: AppColors.error),
-    );
+    NotificationHelper.showError(context, msg);
   }
 
   bool _validate() {
@@ -378,13 +379,12 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     setState(() => _isLoading = false);
 
     if (result.success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Expense "${_nameController.text}" added successfully!',
-          ),
-          backgroundColor: AppColors.primary,
-        ),
+      if (mounted) {
+        context.read<DataRefreshProvider>().signalRefresh();
+      }
+      NotificationHelper.showSuccess(
+        context,
+        'Expense "${_nameController.text}" added successfully!',
       );
       Navigator.pop(context, true);
     } else {
@@ -448,12 +448,10 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     setState(() => _isLoading = false);
 
     if (res.success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(res.message),
-          backgroundColor: AppColors.primary,
-        ),
-      );
+      if (mounted) {
+        context.read<DataRefreshProvider>().signalRefresh();
+      }
+      NotificationHelper.showSuccess(context, res.message);
       Navigator.pop(context, true);
     } else {
       _snack(res.message);

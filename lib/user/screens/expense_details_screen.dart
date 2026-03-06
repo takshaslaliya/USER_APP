@@ -6,6 +6,9 @@ import 'package:splitease_test/core/services/group_service.dart';
 import 'package:splitease_test/core/services/auth_service.dart';
 import 'package:splitease_test/core/services/whatsapp_service.dart';
 import 'package:splitease_test/core/theme/app_theme.dart';
+import 'package:provider/provider.dart';
+import 'package:splitease_test/core/providers/data_refresh_provider.dart';
+import 'package:splitease_test/shared/utils/notification_helper.dart';
 
 class ExpenseDetailsScreen extends StatefulWidget {
   final GroupModel group;
@@ -334,23 +337,17 @@ class _ExpenseDetailsScreenState extends State<ExpenseDetailsScreen> {
     if (mounted) {
       setState(() => _isLoading = false);
       if (res.success) {
+        context.read<DataRefreshProvider>().signalRefresh();
         _refreshExpense();
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(res.message),
-            backgroundColor: AppColors.error,
-          ),
-        );
+        NotificationHelper.showError(context, res.message);
       }
     }
   }
 
   Future<void> _showReminderMessageDialog() async {
     if (_selectedMemberIds.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select at least one member')),
-      );
+      NotificationHelper.showInfo(context, 'Please select at least one member');
       return;
     }
 
@@ -485,9 +482,7 @@ class _ExpenseDetailsScreenState extends State<ExpenseDetailsScreen> {
 
   Future<void> _sendReminders({String? customMessage}) async {
     if (_selectedMemberIds.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select at least one member')),
-      );
+      NotificationHelper.showInfo(context, 'Please select at least one member');
       return;
     }
 
@@ -581,10 +576,9 @@ class _ExpenseDetailsScreenState extends State<ExpenseDetailsScreen> {
 
     if (requests.isEmpty) {
       setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No valid phone numbers found for selected members'),
-        ),
+      NotificationHelper.showError(
+        context,
+        'No valid phone numbers found for selected members',
       );
       return;
     }
@@ -607,19 +601,9 @@ class _ExpenseDetailsScreenState extends State<ExpenseDetailsScreen> {
       setState(() => _isLoading = false);
       if (res.success) {
         setState(() => _selectedMemberIds.clear());
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Reminders sent successfully!'),
-            backgroundColor: AppColors.whatsapp,
-          ),
-        );
+        NotificationHelper.showSuccess(context, 'Reminders sent successfully!');
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(res.message),
-            backgroundColor: AppColors.error,
-          ),
-        );
+        NotificationHelper.showError(context, res.message);
       }
     }
   }

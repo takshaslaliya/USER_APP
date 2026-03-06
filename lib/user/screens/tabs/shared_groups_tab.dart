@@ -177,46 +177,18 @@ class _SharedGroupsTabState extends State<SharedGroupsTab> {
                                             ? AppColors.darkBg
                                             : AppColors.lightBg,
                                         borderRadius: BorderRadius.circular(14),
-                                        image: group.customImageUrl != null
+                                        image: group.bestPhoto != null
                                             ? DecorationImage(
                                                 image:
-                                                    () {
-                                                          final url = group
-                                                              .customImageUrl!;
-                                                          if (url.startsWith(
-                                                                'http',
-                                                              ) ||
-                                                              url.startsWith(
-                                                                'blob:',
-                                                              )) {
-                                                            return NetworkImage(
-                                                              url,
-                                                            );
-                                                          } else if (url
-                                                              .startsWith(
-                                                                'data:',
-                                                              )) {
-                                                            final base64Str =
-                                                                url
-                                                                    .split(',')
-                                                                    .last;
-                                                            return MemoryImage(
-                                                              base64Decode(
-                                                                base64Str,
-                                                              ),
-                                                            );
-                                                          } else {
-                                                            return FileImage(
-                                                              File(url),
-                                                            );
-                                                          }
-                                                        }()
+                                                    _resolveImage(
+                                                          group.bestPhoto!,
+                                                        )
                                                         as ImageProvider,
                                                 fit: BoxFit.cover,
                                               )
                                             : null,
                                       ),
-                                      child: group.customImageUrl == null
+                                      child: group.bestPhoto == null
                                           ? Center(
                                               child: Material(
                                                 color: Colors.transparent,
@@ -298,5 +270,16 @@ class _SharedGroupsTabState extends State<SharedGroupsTab> {
                     ),
             ),
     );
+  }
+
+  dynamic _resolveImage(String url) {
+    if (url.startsWith('http') || url.startsWith('blob:')) {
+      return NetworkImage(url);
+    } else if (url.startsWith('data:')) {
+      final base64Str = url.split(',').last;
+      return MemoryImage(base64Decode(base64Str));
+    } else {
+      return FileImage(File(url));
+    }
   }
 }

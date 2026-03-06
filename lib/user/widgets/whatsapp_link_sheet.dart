@@ -5,6 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:splitease_test/core/theme/app_theme.dart';
 import 'package:splitease_test/core/services/whatsapp_service.dart';
 import 'package:splitease_test/shared/widgets/app_button.dart';
+import 'package:splitease_test/shared/utils/notification_helper.dart';
+import 'package:provider/provider.dart';
+import 'package:splitease_test/core/providers/data_refresh_provider.dart';
 
 class WhatsAppLinkSheet extends StatefulWidget {
   const WhatsAppLinkSheet({super.key});
@@ -74,11 +77,9 @@ class _WhatsAppLinkSheetState extends State<WhatsAppLinkSheet>
 
   Future<void> _sendOtp() async {
     if (_phoneController.text.length < 10) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Please enter a valid mobile number first'),
-          backgroundColor: AppColors.error,
-        ),
+      NotificationHelper.showError(
+        context,
+        'Please enter a valid mobile number first',
       );
       return;
     }
@@ -103,23 +104,16 @@ class _WhatsAppLinkSheetState extends State<WhatsAppLinkSheet>
         });
         _startTimer(90); // 1.5 minutes
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(res.message),
-            backgroundColor: AppColors.error,
-          ),
-        );
+        NotificationHelper.showError(context, res.message);
       }
     }
   }
 
   Future<void> _getQrCode() async {
     if (_phoneController.text.length < 10) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Please enter a valid mobile number first'),
-          backgroundColor: AppColors.error,
-        ),
+      NotificationHelper.showError(
+        context,
+        'Please enter a valid mobile number first',
       );
       return;
     }
@@ -146,12 +140,7 @@ class _WhatsAppLinkSheetState extends State<WhatsAppLinkSheet>
         });
         _startTimer(60); // 1 minute
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(res.message),
-            backgroundColor: AppColors.error,
-          ),
-        );
+        NotificationHelper.showError(context, res.message);
       }
     }
   }
@@ -162,13 +151,12 @@ class _WhatsAppLinkSheetState extends State<WhatsAppLinkSheet>
     if (mounted) {
       setState(() => _isLoading = false);
       if (res.success && res.data?['status'] == 'connected') {
+        context.read<DataRefreshProvider>().signalRefresh();
         Navigator.pop(context, true);
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(res.data?['message'] ?? 'Not yet connected'),
-            backgroundColor: AppColors.primary,
-          ),
+        NotificationHelper.showInfo(
+          context,
+          res.data?['message'] ?? 'Not yet connected',
         );
       }
     }
@@ -254,13 +242,9 @@ class _WhatsAppLinkSheetState extends State<WhatsAppLinkSheet>
                   if (_phoneController.text.length >= 10) {
                     setState(() => _isNumberEntered = true);
                   } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: const Text(
-                          'Please enter a valid mobile number',
-                        ),
-                        backgroundColor: AppColors.error,
-                      ),
+                    NotificationHelper.showError(
+                      context,
+                      'Please enter a valid mobile number',
                     );
                   }
                 },

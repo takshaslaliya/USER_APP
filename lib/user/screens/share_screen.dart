@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:splitease_test/core/theme/app_theme.dart';
 import 'package:splitease_test/shared/widgets/app_button.dart';
+import 'package:splitease_test/shared/utils/notification_helper.dart';
 
 class ShareScreen extends StatelessWidget {
   const ShareScreen({super.key});
@@ -101,13 +102,7 @@ class ShareScreen extends StatelessWidget {
               icon: Icons.chat_bubble_outline_rounded,
               // Typically we'd use url_launcher, but since this is UI-only prototyping:
               onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Opening WhatsApp...'),
-                    backgroundColor: AppColors.primary,
-                    behavior: SnackBarBehavior.floating,
-                  ),
-                );
+                NotificationHelper.showInfo(context, 'Opening WhatsApp...');
               },
             ),
             SizedBox(height: 20),

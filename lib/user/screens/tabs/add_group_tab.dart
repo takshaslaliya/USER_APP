@@ -4,6 +4,9 @@ import 'package:splitease_test/core/models/group_model.dart';
 import 'package:splitease_test/core/theme/app_theme.dart';
 import 'package:splitease_test/shared/widgets/app_button.dart';
 import 'package:splitease_test/core/services/group_service.dart';
+import 'package:splitease_test/shared/utils/notification_helper.dart';
+import 'package:provider/provider.dart';
+import 'package:splitease_test/core/providers/data_refresh_provider.dart';
 
 class AddGroupTab extends StatefulWidget {
   const AddGroupTab({super.key});
@@ -37,25 +40,19 @@ class _AddGroupTabState extends State<AddGroupTab> {
     if (result.success && result.data != null) {
       final newGroup = GroupModel.fromJson(result.data!);
 
+      context.read<DataRefreshProvider>().signalRefresh();
       // Navigate to group details
       Navigator.pushNamed(context, '/details', arguments: newGroup);
 
       // Reset form
       _nameController.clear();
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Group "${newGroup.name}" created successfully!'),
-          backgroundColor: AppColors.primary,
-        ),
+      NotificationHelper.showSuccess(
+        context,
+        'Group "${newGroup.name}" created successfully!',
       );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(result.message),
-          backgroundColor: AppColors.error,
-        ),
-      );
+      NotificationHelper.showError(context, result.message);
     }
   }
 
