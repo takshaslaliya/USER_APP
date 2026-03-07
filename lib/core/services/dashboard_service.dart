@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
@@ -19,10 +21,27 @@ class DashboardData {
 
   factory DashboardData.fromJson(Map<String, dynamic> json) {
     final data = json['data'] as Map<String, dynamic>? ?? {};
+
+    // Support multiple field names from backend to ensure data shows up correctly
+    final send =
+        data['money_to_send'] ??
+        data['money_to_pay'] ??
+        data['total_owe'] ??
+        0.0;
+    final receive =
+        data['money_to_receive'] ??
+        data['money_to_get'] ??
+        data['total_gain'] ??
+        0.0;
+
     return DashboardData(
       user: data['user'] as Map<String, dynamic>? ?? {},
-      moneyToSend: (data['money_to_send'] as num?)?.toDouble() ?? 0.0,
-      moneyToReceive: (data['money_to_receive'] as num?)?.toDouble() ?? 0.0,
+      moneyToSend: (send is num)
+          ? send.toDouble()
+          : double.tryParse(send.toString()) ?? 0.0,
+      moneyToReceive: (receive is num)
+          ? receive.toDouble()
+          : double.tryParse(receive.toString()) ?? 0.0,
       recentGroups: data['recent_groups'] as List<dynamic>? ?? [],
     );
   }
@@ -43,9 +62,16 @@ class DashboardService {
       final uri = Uri.parse('${AppConfig.userUrl}/dashboard');
       final response = await http
           .get(uri, headers: headers)
-          .timeout(const Duration(seconds: 15));
+          .timeout(const Duration(seconds: 30));
 
       debugPrint('DashboardService: GET $uri -> ${response.statusCode}');
+
+      if (response.body.isEmpty) {
+        return DashboardResult(
+          success: false,
+          message: 'Server returned an empty response',
+        );
+      }
 
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
 
@@ -61,11 +87,15 @@ class DashboardService {
           message: decoded['message'] ?? 'Failed to load dashboard',
         );
       }
+    } on SocketException {
+      return DashboardResult(success: false, message: 'No internet connection');
+    } on TimeoutException {
+      return DashboardResult(success: false, message: 'Request timed out');
     } catch (e) {
       debugPrint('DashboardService Error: $e');
       return DashboardResult(
         success: false,
-        message: 'Network error. Please check your connection.',
+        message: 'Network error. Please try again.',
       );
     }
   }

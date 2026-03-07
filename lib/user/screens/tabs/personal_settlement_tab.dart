@@ -12,7 +12,7 @@ import 'package:splitease_test/core/providers/data_refresh_provider.dart';
 // ──────────────────────────────────────────────────────────────────────────────
 
 class PersonSettlement {
-  final String id;
+  final List<String> ids;
   final String name;
   final String? phone;
   final double toReceive;
@@ -22,7 +22,7 @@ class PersonSettlement {
   final List<SettlementGroupDetail> details;
 
   PersonSettlement({
-    required this.id,
+    required this.ids,
     required this.name,
     this.phone,
     required this.toReceive,
@@ -33,8 +33,9 @@ class PersonSettlement {
   });
 
   factory PersonSettlement.fromJson(Map<String, dynamic> json) {
+    final idStr = json['id']?.toString() ?? '';
     return PersonSettlement(
-      id: json['id']?.toString() ?? '',
+      ids: idStr.isNotEmpty ? [idStr] : [],
       name: json['name']?.toString() ?? 'Unknown User',
       phone: json['phone']?.toString(),
       toReceive: (json['to_receive'] ?? 0).toDouble(),
@@ -150,12 +151,37 @@ class _PersonalSettlementTabState extends State<PersonalSettlementTab> {
 
     if (result.success && result.data != null) {
       final List<dynamic> data = result.data;
-      final settlements = data
+      final rawSettlements = data
           .map((json) => PersonSettlement.fromJson(json))
           .toList();
-      if (mounted) setState(() => _settlements = settlements);
+
+      // Consolidate duplicates by name + phone
+      final Map<String, PersonSettlement> grouped = {};
+      for (var s in rawSettlements) {
+        final key = s.name.toLowerCase().trim();
+        if (grouped.containsKey(key)) {
+          final existing = grouped[key]!;
+          final mergedToReceive = existing.toReceive + s.toReceive;
+          final mergedToSend = existing.toSend + s.toSend;
+          final mergedNet = mergedToReceive - mergedToSend;
+
+          grouped[key] = PersonSettlement(
+            ids: {...existing.ids, ...s.ids}.toList(),
+            name: existing.name,
+            phone: existing.phone ?? s.phone,
+            toReceive: mergedToReceive,
+            toSend: mergedToSend,
+            netAmount: mergedNet,
+            status: mergedNet >= 0 ? 'Takes' : 'Gives',
+            details: [...existing.details, ...s.details],
+          );
+        } else {
+          grouped[key] = s;
+        }
+      }
+
+      if (mounted) setState(() => _settlements = grouped.values.toList());
     } else {
-      // If API fails or returns empty, we can show sample data as fallback if desired
       if (mounted) setState(() => _settlements = []);
     }
   }
@@ -178,13 +204,14 @@ class _PersonalSettlementTabState extends State<PersonalSettlementTab> {
   }
 
   void _startSettlementTimer(PersonSettlement s) {
-    if (_settleTimers[s.id] != null) return;
+    final String timerKey = s.ids.join(',');
+    if (_settleTimers[timerKey] != null) return;
 
     setState(() {
-      _countdownValues[s.id] = 10;
+      _countdownValues[timerKey] = 10;
     });
 
-    _settleTimers[s.id] = Timer.periodic(const Duration(seconds: 1), (
+    _settleTimers[timerKey] = Timer.periodic(const Duration(seconds: 1), (
       timer,
     ) async {
       if (!mounted) {
@@ -193,12 +220,12 @@ class _PersonalSettlementTabState extends State<PersonalSettlementTab> {
       }
 
       setState(() {
-        _countdownValues[s.id] = (_countdownValues[s.id] ?? 10) - 1;
+        _countdownValues[timerKey] = (_countdownValues[timerKey] ?? 10) - 1;
       });
 
-      if (_countdownValues[s.id] == 0) {
+      if (_countdownValues[timerKey] == 0) {
         timer.cancel();
-        _settleTimers[s.id] = null;
+        _settleTimers[timerKey] = null;
         await _performActualSettle(s);
       }
     });
@@ -213,11 +240,12 @@ class _PersonalSettlementTabState extends State<PersonalSettlementTab> {
   }
 
   void _cancelSettlementTimer(PersonSettlement s) {
-    if (_settleTimers[s.id] != null) {
-      _settleTimers[s.id]!.cancel();
+    final String timerKey = s.ids.join(',');
+    if (_settleTimers[timerKey] != null) {
+      _settleTimers[timerKey]!.cancel();
       setState(() {
-        _settleTimers[s.id] = null;
-        _countdownValues.remove(s.id);
+        _settleTimers[timerKey] = null;
+        _countdownValues.remove(timerKey);
       });
       NotificationHelper.showInfo(
         context,
@@ -229,18 +257,23 @@ class _PersonalSettlementTabState extends State<PersonalSettlementTab> {
   Future<void> _performActualSettle(PersonSettlement s) async {
     setState(() => _isLoading = true);
 
-    // Call the new consolidated settlement API
-    final res = await AuthService.settleTransactions(s.id);
-    debugPrint('Settlement performed: ${res.message}');
+    // Call settlement for ALL associated IDs
+    bool anySuccess = false;
+    for (var id in s.ids) {
+      final res = await AuthService.settleTransactions(id);
+      if (res.success) anySuccess = true;
+    }
 
     await _loadData();
     if (mounted) {
       context.read<DataRefreshProvider>().signalRefresh();
       setState(() {
         _isLoading = false;
-        _countdownValues.remove(s.id);
+        _countdownValues.remove(s.ids.join(','));
       });
-      NotificationHelper.showSuccess(context, 'Settled with ${s.name}');
+      if (anySuccess) {
+        NotificationHelper.showSuccess(context, 'Settled with ${s.name}');
+      }
     }
   }
 
@@ -361,8 +394,9 @@ class _PersonalSettlementTabState extends State<PersonalSettlementTab> {
   }
 
   Widget _buildSettlementCard(PersonSettlement s, bool isDark) {
-    final bool isTimerRunning = _settleTimers[s.id] != null;
-    final int countdown = _countdownValues[s.id] ?? 0;
+    final String timerKey = s.ids.join(',');
+    final bool isTimerRunning = _settleTimers[timerKey] != null;
+    final int countdown = _countdownValues[timerKey] ?? 0;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
@@ -90,16 +91,60 @@ class AuthService {
     try {
       final response = await http
           .post(uri, headers: _headers, body: jsonEncode(body))
-          .timeout(const Duration(seconds: 15));
+          .timeout(const Duration(seconds: 30));
+
       debugPrint('AuthService: POST $uri -> ${response.statusCode}');
-      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
-      decoded['_statusCode'] = response.statusCode;
-      return decoded;
+
+      if (response.body.isEmpty) {
+        return {
+          'success': false,
+          'message':
+              'Server returned an empty response (Status: ${response.statusCode})',
+          '_statusCode': response.statusCode,
+        };
+      }
+
+      try {
+        final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+        decoded['_statusCode'] = response.statusCode;
+        return decoded;
+      } on FormatException {
+        debugPrint('AuthService Error: Invalid JSON -> ${response.body}');
+        return {
+          'success': false,
+          'message':
+              'Server provided an invalid response. Please try again later.',
+          '_statusCode': response.statusCode,
+        };
+      }
+    } on SocketException catch (e) {
+      debugPrint('AuthService SocketException: $e');
+      return {
+        'success': false,
+        'message':
+            'No internet connection or server unreachable. Please check your network.',
+        '_statusCode': 0,
+      };
+    } on http.ClientException catch (e) {
+      debugPrint('AuthService ClientException: $e');
+      return {
+        'success': false,
+        'message': 'Network error. Please try again.',
+        '_statusCode': 0,
+      };
+    } on TimeoutException {
+      debugPrint('AuthService Timeout: $uri');
+      return {
+        'success': false,
+        'message':
+            'Connection timed out. The server is taking too long to respond.',
+        '_statusCode': 408,
+      };
     } catch (e) {
       debugPrint('AuthService Error: POST $uri -> $e');
       return {
         'success': false,
-        'message': 'Network error ($e). Please check your connection.',
+        'message': 'Something went wrong. Please try again.',
         '_statusCode': 0,
       };
     }
@@ -242,7 +287,14 @@ class AuthService {
       final headers = await getAuthHeaders();
       final response = await http
           .get(Uri.parse('${AppConfig.userUrl}/profile'), headers: headers)
-          .timeout(const Duration(seconds: 15));
+          .timeout(const Duration(seconds: 30));
+
+      if (response.body.isEmpty) {
+        return AuthResult(
+          success: false,
+          message: 'Server returned an empty response',
+        );
+      }
 
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
       Map<String, dynamic>? finalUserData =
@@ -271,7 +323,18 @@ class AuthService {
                 : 'Failed to fetch profile'),
         data: finalUserData,
       );
+    } on SocketException {
+      return AuthResult(
+        success: false,
+        message: 'No internet connection. Please check your network.',
+      );
+    } on TimeoutException {
+      return AuthResult(
+        success: false,
+        message: 'Request timed out. Please try again.',
+      );
     } catch (e) {
+      debugPrint('getProfile Error: $e');
       return AuthResult(
         success: false,
         message: 'Network error. Please try again.',
@@ -292,7 +355,7 @@ class AuthService {
             headers: headers,
             body: jsonEncode({'mobile_number': mobileNumber}),
           )
-          .timeout(const Duration(seconds: 15));
+          .timeout(const Duration(seconds: 30));
 
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
 
@@ -301,7 +364,12 @@ class AuthService {
         message: decoded['message'] ?? 'Checked',
         data: decoded['data'] as Map<String, dynamic>?,
       );
+    } on SocketException {
+      return AuthResult(success: false, message: 'No internet connection.');
+    } on TimeoutException {
+      return AuthResult(success: false, message: 'Request timed out.');
     } catch (e) {
+      debugPrint('checkUserStatus Error: $e');
       return AuthResult(
         success: false,
         message: 'Network error. Please try again.',
@@ -343,8 +411,18 @@ class AuthService {
         request.files.add(photoPart);
       }
 
-      final streamedResponse = await request.send();
+      final streamedResponse = await request.send().timeout(
+        const Duration(seconds: 45),
+      ); // Longer for files
       final response = await http.Response.fromStream(streamedResponse);
+
+      if (response.body.isEmpty) {
+        return AuthResult(
+          success: false,
+          message: 'Server returned an empty response',
+        );
+      }
+
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
 
       if (response.statusCode == 200 && decoded['success'] == true) {
@@ -365,6 +443,16 @@ class AuthService {
           message: decoded['message'] ?? 'Failed to update profile',
         );
       }
+    } on SocketException {
+      return AuthResult(
+        success: false,
+        message: 'No internet connection. Please check your network.',
+      );
+    } on TimeoutException {
+      return AuthResult(
+        success: false,
+        message: 'Request timed out while uploading. Please try again.',
+      );
     } catch (e) {
       debugPrint('UpdateProfile Error: $e');
       return AuthResult(
@@ -417,7 +505,7 @@ class AuthService {
             headers: headers,
             body: jsonEncode({'id': id}),
           )
-          .timeout(const Duration(seconds: 15));
+          .timeout(const Duration(seconds: 30));
 
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
 
@@ -426,6 +514,10 @@ class AuthService {
         message: decoded['message'] ?? 'Settled',
         data: decoded,
       );
+    } on SocketException {
+      return AuthResult(success: false, message: 'No internet connection');
+    } on TimeoutException {
+      return AuthResult(success: false, message: 'Request timed out');
     } catch (e) {
       return AuthResult(
         success: false,

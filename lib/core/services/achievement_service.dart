@@ -13,7 +13,7 @@ class AchievementService {
       final headers = await AuthService.getAuthHeaders();
       final response = await http
           .get(Uri.parse(_baseUrl), headers: headers)
-          .timeout(const Duration(seconds: 10));
+          .timeout(const Duration(seconds: 30));
 
       if (response.statusCode == 200) {
         final decoded = jsonDecode(response.body) as Map<String, dynamic>;
@@ -39,7 +39,7 @@ class AchievementService {
             headers: headers,
             body: jsonEncode({'type': 'app_usage'}),
           )
-          .timeout(const Duration(seconds: 5));
+          .timeout(const Duration(seconds: 30));
     } catch (_) {}
   }
 }

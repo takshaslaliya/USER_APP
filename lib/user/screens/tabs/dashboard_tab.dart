@@ -376,27 +376,41 @@ class _DashboardTabState extends State<DashboardTab> {
                       width: double.infinity,
                       child: Stack(
                         children: [
-                          // ── Premium Gradient Background ────────────────
+                          // ── Dynamic Gradient Background ────────────────
                           Container(
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(32),
                               gradient: LinearGradient(
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
-                                colors: [
-                                  const Color(0xFF1CB0A0), // SplitEase Primary
-                                  const Color(
-                                    0xFF1CB0A0,
-                                  ).withValues(alpha: 0.8),
-                                  const Color(0xFF0D4D44), // Deep Forest
-                                ],
+                                colors: netBalance > 0
+                                    ? [
+                                        const Color(0xFF2ECC71), // Green
+                                        const Color(0xFF27AE60),
+                                        const Color(0xFF1B5E20),
+                                      ]
+                                    : netBalance < 0
+                                    ? [
+                                        const Color(0xFFE74C3C), // Red
+                                        const Color(0xFFC0392B),
+                                        const Color(0xFFB71C1C),
+                                      ]
+                                    : [
+                                        const Color(0xFF1CB0A0), // Teal
+                                        const Color(0xFF169083),
+                                        const Color(0xFF0D4D44),
+                                      ],
                                 stops: const [0.0, 0.4, 1.0],
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: const Color(
-                                    0xFF1CB0A0,
-                                  ).withValues(alpha: 0.3),
+                                  color:
+                                      (netBalance > 0
+                                              ? const Color(0xFF2ECC71)
+                                              : netBalance < 0
+                                              ? const Color(0xFFE74C3C)
+                                              : const Color(0xFF1CB0A0))
+                                          .withValues(alpha: 0.3),
                                   blurRadius: 25,
                                   offset: const Offset(0, 12),
                                 ),
@@ -782,7 +796,11 @@ class _DashboardTabState extends State<DashboardTab> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              netBalance >= 0 ? 'You Get Back' : 'You Owe',
+              netBalance > 0
+                  ? 'You Get Back'
+                  : netBalance < 0
+                  ? 'You Owe Total'
+                  : 'Net Balance',
               style: TextStyle(
                 color: Colors.white70,
                 fontSize: 16,

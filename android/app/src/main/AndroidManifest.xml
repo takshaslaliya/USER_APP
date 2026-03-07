@@ -12,7 +12,7 @@
 
 
     <application
-        android:label="splitease_test"
+        android:label="SplitEase"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

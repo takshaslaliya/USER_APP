@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:splitease_test/core/config/app_config.dart';
@@ -22,26 +24,44 @@ class WhatsAppService {
       final url = Uri.parse('${AppConfig.whatsappUrl}$path');
 
       http.Response response;
+      final timeout = const Duration(seconds: 30);
+
       if (method == 'POST') {
-        response = await http.post(
-          url,
-          headers: headers,
-          body: jsonEncode(body),
-        );
+        response = await http
+            .post(url, headers: headers, body: jsonEncode(body))
+            .timeout(timeout);
       } else if (method == 'GET') {
-        response = await http.get(url, headers: headers);
+        response = await http.get(url, headers: headers).timeout(timeout);
       } else {
         throw Exception('Unsupported method');
       }
 
-      final decoded = jsonDecode(response.body);
-      return WhatsAppResult(
-        success: decoded['success'] ?? false,
-        message:
-            decoded['message'] ??
-            (decoded['success'] == true ? 'Success' : 'Failed'),
-        data: decoded['data'],
-      );
+      if (response.body.isEmpty) {
+        return WhatsAppResult(
+          success: false,
+          message: 'Empty response from server',
+        );
+      }
+
+      try {
+        final decoded = jsonDecode(response.body);
+        return WhatsAppResult(
+          success: decoded['success'] ?? false,
+          message:
+              decoded['message'] ??
+              (decoded['success'] == true ? 'Success' : 'Failed'),
+          data: decoded['data'],
+        );
+      } on FormatException {
+        return WhatsAppResult(
+          success: false,
+          message: 'Invalid response from server',
+        );
+      }
+    } on SocketException {
+      return WhatsAppResult(success: false, message: 'No internet connection');
+    } on TimeoutException {
+      return WhatsAppResult(success: false, message: 'Request timed out');
     } catch (e) {
       return WhatsAppResult(success: false, message: 'Network error: $e');
     }

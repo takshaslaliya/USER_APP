@@ -4,8 +4,7 @@ class AppConfig {
   AppConfig._();
 
   /// Backend base URL — includes the /api prefix.
-  static const String apiBaseUrl =
-      'https://slateblue-wildcat-506487.hostingersite.com/api';
+  static const String apiBaseUrl = 'https://aurotech.tech/api';
 
   static const String authUrl = '$apiBaseUrl/auth';
 

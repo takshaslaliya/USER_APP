@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
@@ -29,52 +30,73 @@ class GroupService {
   }) async {
     try {
       final headers = await AuthService.getAuthHeaders();
-      // Add method override for better compatibility with restricted servers
       headers['X-HTTP-Method-Override'] = method;
       http.Response response;
       final uri = Uri.parse('$_baseUrl$path');
 
+      final timeout = const Duration(seconds: 30);
+
       switch (method) {
         case 'GET':
-          response = await http
-              .get(uri, headers: headers)
-              .timeout(const Duration(seconds: 15));
+          response = await http.get(uri, headers: headers).timeout(timeout);
           break;
         case 'POST':
-          debugPrint('GroupService POST $uri Body: ${jsonEncode(body)}');
           response = await http
               .post(uri, headers: headers, body: jsonEncode(body))
-              .timeout(const Duration(seconds: 15));
+              .timeout(timeout);
           break;
         case 'PUT':
-          debugPrint('GroupService PUT $uri Body: ${jsonEncode(body)}');
           response = await http
               .put(uri, headers: headers, body: jsonEncode(body))
-              .timeout(const Duration(seconds: 15));
+              .timeout(timeout);
           break;
         case 'DELETE':
-          response = await http
-              .delete(uri, headers: headers)
-              .timeout(const Duration(seconds: 15));
+          response = await http.delete(uri, headers: headers).timeout(timeout);
           break;
         default:
           throw Exception('Unsupported HTTP method $method');
       }
 
-      debugPrint('GroupService: $method $uri -> ${response.statusCode}');
+      if (response.body.isEmpty) {
+        return GroupResult(
+          success: false,
+          message: 'Empty response from server',
+          statusCode: response.statusCode,
+        );
+      }
 
-      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      try {
+        final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+        return GroupResult(
+          success: decoded['success'] == true,
+          message: decoded['message'] ?? '',
+          data: decoded['data'],
+          statusCode: response.statusCode,
+        );
+      } on FormatException {
+        return GroupResult(
+          success: false,
+          message: 'Invalid response from server',
+          statusCode: response.statusCode,
+        );
+      }
+    } on SocketException {
       return GroupResult(
-        success: decoded['success'] == true,
-        message: decoded['message'] ?? '',
-        data: decoded['data'],
-        statusCode: response.statusCode,
+        success: false,
+        message: 'No internet connection',
+        statusCode: 0,
+      );
+    } on TimeoutException {
+      return GroupResult(
+        success: false,
+        message: 'Request timed out',
+        statusCode: 408,
       );
     } catch (e) {
       debugPrint('GroupService Error: $e');
       return GroupResult(
         success: false,
-        message: 'Network error ($e). Please check your connection.',
+        message: 'Network error. Please try again.',
         statusCode: 0,
       );
     }
@@ -184,10 +206,10 @@ class GroupService {
               'group_id': groupId,
               'expense_name': expenseName,
               'split_type': splitType,
-              'upi_ids': ?upiIds,
+              if (upiIds != null) 'upi_ids': upiIds,
             }),
           )
-          .timeout(const Duration(seconds: 15));
+          .timeout(const Duration(seconds: 30));
 
       final decoded = jsonDecode(response.body);
 
@@ -250,12 +272,12 @@ class GroupService {
             uri,
             headers: headers,
             body: jsonEncode({
-              'expense_amount': ?amount,
-              'is_paid': ?isPaid,
-              'name': ?name,
+              if (amount != null) 'expense_amount': amount,
+              if (isPaid != null) 'is_paid': isPaid,
+              if (name != null) 'name': name,
             }),
           )
-          .timeout(const Duration(seconds: 15));
+          .timeout(const Duration(seconds: 30));
 
       final decoded = jsonDecode(response.body);
       return GroupResult(
@@ -422,7 +444,7 @@ class GroupService {
       final uri = Uri.parse(AppConfig.settlementUrl);
       final response = await http
           .get(uri, headers: headers)
-          .timeout(const Duration(seconds: 15));
+          .timeout(const Duration(seconds: 30));
 
       final decoded = jsonDecode(response.body);
       return GroupResult(
