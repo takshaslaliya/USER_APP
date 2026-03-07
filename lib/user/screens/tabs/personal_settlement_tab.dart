@@ -186,21 +186,41 @@ class _PersonalSettlementTabState extends State<PersonalSettlementTab> {
     }
   }
 
-  void _sendNotification(PersonSettlement s) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Notification Sent'),
-        content: Text('A settlement reminder has been sent to ${s.name}.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
+  Future<void> _sendNotification(PersonSettlement s) async {
+    if (s.ids.isEmpty) return;
+
+    setState(() => _isLoading = true);
+
+    // Notify for the first transaction ID found (representative of the debt)
+    // with the absolute net amount we owe.
+    final res = await AuthService.notifyPaid(
+      id: s.ids.first,
+      amount: s.netAmount.abs(),
     );
+
+    if (mounted) {
+      setState(() => _isLoading = false);
+      if (res.success) {
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            title: const Text('Notification Sent'),
+            content: Text(res.message),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      } else {
+        NotificationHelper.showError(context, res.message);
+      }
+    }
   }
 
   void _startSettlementTimer(PersonSettlement s) {

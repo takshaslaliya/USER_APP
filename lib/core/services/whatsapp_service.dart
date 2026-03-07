@@ -28,7 +28,11 @@ class WhatsAppService {
 
       if (method == 'POST') {
         response = await http
-            .post(url, headers: headers, body: jsonEncode(body))
+            .post(
+              url,
+              headers: headers,
+              body: body != null ? jsonEncode(body) : null,
+            )
             .timeout(timeout);
       } else if (method == 'GET') {
         response = await http.get(url, headers: headers).timeout(timeout);

@@ -559,4 +559,37 @@ class AuthService {
       message: res['message'] ?? 'Unknown error',
     );
   }
+
+  static Future<AuthResult> notifyPaid({
+    required String id,
+    required double amount,
+  }) async {
+    try {
+      final headers = await getAuthHeaders();
+      final response = await http
+          .post(
+            Uri.parse('${AppConfig.settlementUrl}/notify-paid'),
+            headers: headers,
+            body: jsonEncode({'id': id, 'amount': amount}),
+          )
+          .timeout(const Duration(seconds: 30));
+
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+
+      return AuthResult(
+        success: decoded['success'] == true,
+        message: decoded['message'] ?? 'Notification sent.',
+        data: decoded,
+      );
+    } on SocketException {
+      return AuthResult(success: false, message: 'No internet connection');
+    } on TimeoutException {
+      return AuthResult(success: false, message: 'Request timed out');
+    } catch (e) {
+      return AuthResult(
+        success: false,
+        message: 'Network error. Please try again.',
+      );
+    }
+  }
 }
