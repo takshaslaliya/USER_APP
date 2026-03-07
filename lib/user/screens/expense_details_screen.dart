@@ -212,17 +212,24 @@ class _ExpenseDetailsScreenState extends State<ExpenseDetailsScreen> {
         final String rawPayer = payments.keys.isNotEmpty
             ? payments.keys.first.toString()
             : (sg['paid_by']?.toString() ?? 'Payer');
-        final String firstPayer = rawPayer.replaceAll(RegExp(r'[^0-9]'), '');
 
-        // Check if payer is in splits, if not add them with remaining amount
-        // Check if payer is in splits, if not add them with remaining amount
+        // Use either phone-normalized version OR raw if it's a name
+        final String firstPayer =
+            rawPayer.replaceAll(RegExp(r'[^0-9]'), '').length >= 10
+            ? rawPayer.replaceAll(RegExp(r'[^0-9]'), '')
+            : rawPayer;
+
         final normFirstPayer = firstPayer.replaceAll(RegExp(r'[^0-9]'), '');
 
         int payerIdx = splits.indexWhere((s) {
           final sPhone = s.phoneNumber?.replaceAll(RegExp(r'[^0-9]'), '') ?? '';
+          final sName = s.name.toLowerCase().trim();
+          final pName = firstPayer.toLowerCase().trim();
           return s.id == firstPayer ||
-              s.name == firstPayer ||
-              (sPhone.isNotEmpty && sPhone == normFirstPayer);
+              sName == pName ||
+              (sPhone.isNotEmpty &&
+                  normFirstPayer.isNotEmpty &&
+                  sPhone == normFirstPayer);
         });
 
         if (payerIdx == -1) {
@@ -237,11 +244,13 @@ class _ExpenseDetailsScreenState extends State<ExpenseDetailsScreen> {
               name: _phoneToNameCache[firstPayer] ?? firstPayer,
               amount: payerShare > 0 ? payerShare : 0,
               isPaid: true,
-              phoneNumber: firstPayer,
+              phoneNumber:
+                  firstPayer.replaceAll(RegExp(r'[^0-9]'), '').length >= 10
+                  ? firstPayer
+                  : null,
             ),
           );
         } else {
-          // If payer IS in splits, ensure marked as paid
           double totalOwedByOthers = 0;
           for (int i = 0; i < splits.length; i++) {
             if (i != payerIdx) totalOwedByOthers += splits[i].amount;
@@ -257,9 +266,39 @@ class _ExpenseDetailsScreenState extends State<ExpenseDetailsScreen> {
             isPaid: true,
             toId: splits[payerIdx].toId,
             toName: splits[payerIdx].toName,
-            phoneNumber: splits[payerIdx].phoneNumber ?? firstPayer,
+            phoneNumber:
+                splits[payerIdx].phoneNumber ??
+                (firstPayer.replaceAll(RegExp(r'[^0-9]'), '').length >= 10
+                    ? firstPayer
+                    : null),
           );
         }
+
+        // Final consolidation pass for solo splits to catch any remaining duplicates
+        final Map<String, MemberSplit> merged = {};
+        for (var s in splits) {
+          final phoneKey =
+              s.phoneNumber?.replaceAll(RegExp(r'[^0-9]'), '') ?? '';
+          final key = phoneKey.length >= 10
+              ? phoneKey
+              : s.name.toLowerCase().trim();
+
+          if (merged.containsKey(key)) {
+            final e = merged[key]!;
+            merged[key] = MemberSplit(
+              id: e.id,
+              name: e.name.length >= s.name.length ? e.name : s.name,
+              amount: e.amount + s.amount,
+              isPaid: e.isPaid || s.isPaid,
+              toId: e.toId ?? s.toId,
+              toName: e.toName ?? s.toName,
+              phoneNumber: e.phoneNumber ?? s.phoneNumber,
+            );
+          } else {
+            merged[key] = s;
+          }
+        }
+        splits = merged.values.toList();
       }
     } else if (sg['members'] != null && sg['members'] is List) {
       if (sg['members'].isNotEmpty && sg['members'].first is Map) {
