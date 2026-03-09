@@ -23,7 +23,7 @@ class NotificationProvider extends ChangeNotifier {
 
   void _startPolling() {
     _fetch(); // Initial fetch
-    _pollingTimer = Timer.periodic(const Duration(seconds: 5), (timer) async {
+    _pollingTimer = Timer.periodic(const Duration(seconds: 15), (timer) async {
       final isLoggedIn = await AuthService.isLoggedIn();
       if (isLoggedIn) {
         _fetch();

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:splitease_test/core/services/auth_service.dart';
 import 'package:splitease_test/core/services/group_service.dart';
 import 'package:splitease_test/core/theme/app_theme.dart';
+import 'package:splitease_test/core/services/whatsapp_service.dart';
 import 'package:splitease_test/shared/utils/notification_helper.dart';
 import 'package:provider/provider.dart';
 import 'package:splitease_test/core/providers/data_refresh_provider.dart';
@@ -257,6 +258,202 @@ class _PersonalSettlementTabState extends State<PersonalSettlementTab> {
       'Settling with ${s.name} in 10 seconds...',
     );
     */
+  }
+
+  Future<void> _sendWhatsAppReminder(
+    PersonSettlement s, {
+    String? customMessage,
+  }) async {
+    if (s.phone == null || s.phone!.isEmpty) {
+      NotificationHelper.showError(
+        context,
+        'No phone number found for ${s.name}',
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    final currentUser = await AuthService.getUser();
+    final myPhone = currentUser?['mobile_number']?.toString();
+
+    if (myPhone == null) {
+      setState(() => _isLoading = false);
+      NotificationHelper.showError(
+        context,
+        'Could not determine your phone number to send as creditor',
+      );
+      return;
+    }
+
+    final res = await WhatsAppService.sendPayment(
+      requests: [
+        {
+          'phone_number': s.phone,
+          'name': s.name,
+          'amount': s.toReceive,
+          'creditor_phone': myPhone,
+        },
+      ],
+      message:
+          customMessage ??
+          'Hi %name%, this is a reminder from SplitEase. Please pay ₹%amount% for our recent shared expenses. Thank you!',
+    );
+
+    if (mounted) {
+      setState(() => _isLoading = false);
+      if (res.success) {
+        NotificationHelper.showSuccess(
+          context,
+          'WhatsApp reminder sent to ${s.name}',
+        );
+      } else {
+        NotificationHelper.showError(context, res.message);
+      }
+    }
+  }
+
+  Future<void> _showReminderMessageDialog(PersonSettlement s) async {
+    final messageController = TextEditingController();
+
+    return showDialog(
+      context: context,
+      builder: (context) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        final textColor = isDark ? AppColors.darkText : AppColors.lightText;
+        final surfaceColor = isDark
+            ? AppColors.darkSurface
+            : AppColors.lightSurface;
+
+        return AlertDialog(
+          backgroundColor: surfaceColor,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          title: Text(
+            'Custom Reminder',
+            style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Build your message using the buttons below:',
+                style: TextStyle(
+                  color: textColor.withOpacity(0.7),
+                  fontSize: 13,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  _tokenButton(
+                    label: 'Name',
+                    token: '%name%',
+                    controller: messageController,
+                    context: context,
+                  ),
+                  const SizedBox(width: 8),
+                  _tokenButton(
+                    label: 'Amount',
+                    token: '%amount%',
+                    controller: messageController,
+                    context: context,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: messageController,
+                maxLines: 4,
+                style: TextStyle(color: textColor),
+                decoration: InputDecoration(
+                  hintText: 'e.g. Hi %name%, please pay ₹%amount%...',
+                  hintStyle: TextStyle(color: textColor.withOpacity(0.4)),
+                  filled: true,
+                  fillColor: isDark ? AppColors.darkBg : AppColors.lightBg,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('Cancel', style: TextStyle(color: textColor)),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final customMsg = messageController.text.trim();
+                Navigator.pop(context);
+                _sendWhatsAppReminder(
+                  s,
+                  customMessage: customMsg.isNotEmpty ? customMsg : null,
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.whatsapp,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: const Text(
+                'Send',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _tokenButton({
+    required String label,
+    required String token,
+    required TextEditingController controller,
+    required BuildContext context,
+  }) {
+    return InkWell(
+      onTap: () {
+        final text = controller.text;
+        final selection = controller.selection;
+        final start = selection.start == -1 ? text.length : selection.start;
+        final end = selection.end == -1 ? text.length : selection.end;
+        final newText = text.replaceRange(start, end, token);
+        controller.value = TextEditingValue(
+          text: newText,
+          selection: TextSelection.collapsed(offset: start + token.length),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: AppColors.primary.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: AppColors.primary,
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+    );
   }
 
   void _cancelSettlementTimer(PersonSettlement s) {
@@ -578,6 +775,38 @@ class _PersonalSettlementTabState extends State<PersonalSettlementTab> {
                           color: Colors.green,
                           onTap: () => _startSettlementTimer(s),
                           isActive: true,
+                        ),
+                        const SizedBox(width: 8),
+                        // WhatsApp Reminder button
+                        InkWell(
+                          onTap: (s.phone != null && s.phone!.isNotEmpty)
+                              ? () => _showReminderMessageDialog(s)
+                              : () => NotificationHelper.showInfo(
+                                  context,
+                                  'No phone number available',
+                                ),
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: (s.phone != null && s.phone!.isNotEmpty)
+                                  ? AppColors.whatsapp.withOpacity(0.1)
+                                  : Colors.grey.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: (s.phone != null && s.phone!.isNotEmpty)
+                                    ? AppColors.whatsapp.withOpacity(0.3)
+                                    : Colors.grey.withOpacity(0.3),
+                              ),
+                            ),
+                            child: Icon(
+                              Icons.chat_bubble_outline_rounded,
+                              size: 20,
+                              color: (s.phone != null && s.phone!.isNotEmpty)
+                                  ? AppColors.whatsapp
+                                  : Colors.grey,
+                            ),
+                          ),
                         ),
                       ],
                     ],
