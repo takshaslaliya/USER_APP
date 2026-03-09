@@ -12,6 +12,10 @@ import 'package:splitease_test/shared/utils/notification_helper.dart';
 import 'package:splitease_test/core/providers/data_refresh_provider.dart';
 import 'dart:async';
 import 'dart:convert';
+import 'package:splitease_test/user/screens/about_screen.dart';
+import 'package:splitease_test/user/screens/terms_conditions_screen.dart';
+import 'package:splitease_test/user/screens/privacy_policy_screen.dart';
+import 'package:splitease_test/user/screens/customer_service_screen.dart';
 
 class SettingsTab extends StatefulWidget {
   const SettingsTab({super.key});
@@ -263,7 +267,12 @@ class _SettingsTabState extends State<SettingsTab> {
 
   Future<void> _updateProfileMap(Map<String, dynamic> body) async {
     setState(() => _isLoading = true);
-    final res = await AuthService.updateProfile(fullName: body['full_name']);
+    final res = await AuthService.updateProfile(
+      fullName: body['full_name'],
+      username: body['username'],
+      mobileNumber: body['mobile_number'],
+      upiId: body['upi_id'],
+    );
     if (mounted) {
       setState(() {
         _isLoading = false;
@@ -802,7 +811,95 @@ class _SettingsTabState extends State<SettingsTab> {
                 ],
               ),
             ),
-            SizedBox(height: 32),
+            const SizedBox(height: 32),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Support & Info',
+                style: TextStyle(
+                  color: textColor,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              decoration: BoxDecoration(
+                color: surfaceColor,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: isDark
+                      ? AppColors.darkSurfaceVariant
+                      : AppColors.lightSurfaceVariant,
+                ),
+              ),
+              child: Column(
+                children: [
+                  _SupportItem(
+                    icon: Icons.info_outline_rounded,
+                    label: 'About SplitEase',
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const AboutScreen()),
+                    ),
+                    isDark: isDark,
+                  ),
+                  Divider(
+                    height: 1,
+                    color: isDark
+                        ? AppColors.darkSurfaceVariant
+                        : AppColors.lightSurfaceVariant,
+                  ),
+                  _SupportItem(
+                    icon: Icons.headset_mic_outlined,
+                    label: 'Customer Service',
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const CustomerServiceScreen(),
+                      ),
+                    ),
+                    isDark: isDark,
+                  ),
+                  Divider(
+                    height: 1,
+                    color: isDark
+                        ? AppColors.darkSurfaceVariant
+                        : AppColors.lightSurfaceVariant,
+                  ),
+                  _SupportItem(
+                    icon: Icons.description_outlined,
+                    label: 'Terms & Conditions',
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const TermsConditionsScreen(),
+                      ),
+                    ),
+                    isDark: isDark,
+                  ),
+                  Divider(
+                    height: 1,
+                    color: isDark
+                        ? AppColors.darkSurfaceVariant
+                        : AppColors.lightSurfaceVariant,
+                  ),
+                  _SupportItem(
+                    icon: Icons.privacy_tip_outlined,
+                    label: 'Privacy Policy',
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const PrivacyPolicyScreen(),
+                      ),
+                    ),
+                    isDark: isDark,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 32),
             GestureDetector(
               onTap: _logout,
               child: Container(
@@ -1044,6 +1141,45 @@ class _AppearanceOption extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _SupportItem extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final bool isDark;
+
+  const _SupportItem({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final textColor = isDark ? AppColors.darkText : AppColors.lightText;
+
+    return ListTile(
+      onTap: onTap,
+      leading: Icon(icon, color: AppColors.primary, size: 22),
+      title: Text(
+        label,
+        style: TextStyle(
+          color: textColor,
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+      trailing: Icon(
+        Icons.chevron_right_rounded,
+        color: isDark ? AppColors.darkSubtext : AppColors.lightSubtext,
+        size: 20,
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
     );
   }
 }

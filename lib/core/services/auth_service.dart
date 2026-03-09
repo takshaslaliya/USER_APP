@@ -383,6 +383,9 @@ class AuthService {
 
   static Future<AuthResult> updateProfile({
     String? fullName,
+    String? username,
+    String? mobileNumber,
+    String? upiId,
     File? photo,
   }) async {
     try {
@@ -400,6 +403,15 @@ class AuthService {
       // Add text fields
       if (fullName != null) {
         request.fields['full_name'] = fullName;
+      }
+      if (username != null) {
+        request.fields['username'] = username;
+      }
+      if (mobileNumber != null) {
+        request.fields['mobile_number'] = mobileNumber;
+      }
+      if (upiId != null) {
+        request.fields['upi_id'] = upiId;
       }
 
       // Add image file

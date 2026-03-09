@@ -3,6 +3,7 @@ import 'package:splitease_test/core/services/auth_service.dart';
 import 'package:splitease_test/core/theme/app_theme.dart';
 import 'package:splitease_test/shared/widgets/app_button.dart';
 import 'package:splitease_test/shared/utils/notification_helper.dart';
+import 'package:splitease_test/user/screens/privacy_policy_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -30,6 +31,7 @@ class _LoginScreenState extends State<LoginScreen>
   bool _isLoading = false;
   bool _isSignUp = false;
   bool _initDone = false;
+  bool _acceptTerms = false;
 
   // Login method: 'email' or 'mobile'
   String _loginMethod = 'email';
@@ -89,6 +91,14 @@ class _LoginScreenState extends State<LoginScreen>
 
     // ── SIGN UP ──────────────────────────────────────────────────────────
     if (_isSignUp) {
+      if (!_acceptTerms) {
+        NotificationHelper.showError(
+          context,
+          'Please accept the Privacy Policy to continue',
+        );
+        setState(() => _isLoading = false);
+        return;
+      }
       final result = await AuthService.signup(
         mobileNumber: _signupPhoneController.text.trim(),
         email: _signupEmailController.text.trim(),
@@ -319,6 +329,7 @@ class _LoginScreenState extends State<LoginScreen>
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final subColor = isDark ? AppColors.darkSubtext : AppColors.lightSubtext;
 
     return Scaffold(
       body: Container(
@@ -552,6 +563,54 @@ class _LoginScreenState extends State<LoginScreen>
                                 validator: (v) => (v == null || v.length < 6)
                                     ? 'Password must be at least 6 characters'
                                     : null,
+                              ),
+                              SizedBox(height: 16),
+                              Row(
+                                children: [
+                                  SizedBox(
+                                    height: 24,
+                                    width: 24,
+                                    child: Checkbox(
+                                      value: _acceptTerms,
+                                      activeColor: AppColors.primary,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      onChanged: (v) =>
+                                          setState(() => _acceptTerms = v!),
+                                    ),
+                                  ),
+                                  SizedBox(width: 8),
+                                  Expanded(
+                                    child: GestureDetector(
+                                      onTap: () => Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) =>
+                                              const PrivacyPolicyScreen(),
+                                        ),
+                                      ),
+                                      child: RichText(
+                                        text: TextSpan(
+                                          text: 'I accept the ',
+                                          style: TextStyle(
+                                            color: subColor,
+                                            fontSize: 13,
+                                          ),
+                                          children: [
+                                            TextSpan(
+                                              text: 'Privacy Policy',
+                                              style: TextStyle(
+                                                color: AppColors.primary,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
 
