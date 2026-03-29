@@ -91,7 +91,7 @@ class AuthService {
     try {
       final response = await http
           .post(uri, headers: _headers, body: jsonEncode(body))
-          .timeout(const Duration(seconds: 30));
+          .timeout(const Duration(seconds: 60));
 
       debugPrint('AuthService: POST $uri -> ${response.statusCode}');
 
@@ -287,7 +287,7 @@ class AuthService {
       final headers = await getAuthHeaders();
       final response = await http
           .get(Uri.parse('${AppConfig.userUrl}/profile'), headers: headers)
-          .timeout(const Duration(seconds: 30));
+          .timeout(const Duration(seconds: 60));
 
       if (response.body.isEmpty) {
         return AuthResult(
@@ -355,7 +355,7 @@ class AuthService {
             headers: headers,
             body: jsonEncode({'mobile_number': mobileNumber}),
           )
-          .timeout(const Duration(seconds: 30));
+          .timeout(const Duration(seconds: 60));
 
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
 
@@ -487,7 +487,7 @@ class AuthService {
             headers: headers,
             body: jsonEncode({'mobile_number': mobileNumber}),
           )
-          .timeout(const Duration(seconds: 15));
+          .timeout(const Duration(seconds: 60));
 
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
 
@@ -517,7 +517,7 @@ class AuthService {
             headers: headers,
             body: jsonEncode({'id': id}),
           )
-          .timeout(const Duration(seconds: 30));
+          .timeout(const Duration(seconds: 60));
 
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
 
@@ -584,7 +584,7 @@ class AuthService {
             headers: headers,
             body: jsonEncode({'id': id, 'amount': amount}),
           )
-          .timeout(const Duration(seconds: 30));
+          .timeout(const Duration(seconds: 60));
 
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
 

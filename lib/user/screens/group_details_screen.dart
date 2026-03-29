@@ -19,8 +19,9 @@ import 'package:splitease_test/core/providers/data_refresh_provider.dart';
 
 class GroupDetailsScreen extends StatefulWidget {
   final GroupModel group;
+  final String? heroTag;
 
-  const GroupDetailsScreen({super.key, required this.group});
+  const GroupDetailsScreen({super.key, required this.group, this.heroTag});
 
   @override
   State<GroupDetailsScreen> createState() => _GroupDetailsScreenState();
@@ -702,45 +703,51 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
         title: Row(
           children: [
             Hero(
-              tag: 'group_avatar_${_group.id}',
+              tag: widget.heroTag ?? 'group_avatar_${_group.id}',
               child: Container(
                 width: 36,
                 height: 36,
+                clipBehavior: Clip.antiAlias,
                 decoration: BoxDecoration(
                   color: AppColors.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                   image: _group.bestPhoto != null
                       ? DecorationImage(
-                          image:
-                              () {
-                                    final url = _group.bestPhoto!;
-                                    if (url.startsWith('http') ||
-                                        url.startsWith('blob:')) {
-                                      return NetworkImage(url);
-                                    } else if (url.startsWith('data:')) {
-                                      final base64Str = url.split(',').last;
-                                      return MemoryImage(
-                                        base64Decode(base64Str),
-                                      );
-                                    } else {
-                                      return FileImage(File(url));
-                                    }
-                                  }()
-                                  as ImageProvider,
+                          image: () {
+                            final url = _group.bestPhoto!;
+                            if (url.startsWith('http')) {
+                              return NetworkImage(url);
+                            } else if (url.startsWith('data:')) {
+                              final base64Str = url.split(',').last;
+                              return MemoryImage(base64Decode(base64Str));
+                            } else {
+                              return FileImage(File(url));
+                            }
+                          }() as ImageProvider,
                           fit: BoxFit.cover,
                         )
                       : null,
                 ),
                 child: _group.bestPhoto == null
-                    ? Center(
-                        child: Material(
-                          color: Colors.transparent,
-                          child: Text(
-                            _group.name.substring(0, 1).toUpperCase(),
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.primary,
+                    ? Material(
+                        color: Colors.transparent,
+                        child: Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(6.0),
+                            child: FittedBox(
+                              fit: BoxFit.contain,
+                              child: Text(
+                                _group.name.trim().isNotEmpty
+                                    ? _group.name
+                                        .trim()
+                                        .substring(0, 1)
+                                        .toUpperCase()
+                                    : '?',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.primary,
+                                ),
+                              ),
                             ),
                           ),
                         ),

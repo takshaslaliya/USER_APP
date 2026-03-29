@@ -55,7 +55,7 @@ class NotificationService {
 
       final response = await http
           .get(uri, headers: headers)
-          .timeout(const Duration(seconds: 15));
+          .timeout(const Duration(seconds: 60));
 
       if (response.statusCode == 200) {
         final decoded = jsonDecode(response.body);
@@ -79,7 +79,7 @@ class NotificationService {
 
       final response = await http
           .put(uri, headers: headers)
-          .timeout(const Duration(seconds: 10));
+          .timeout(const Duration(seconds: 60));
 
       if (response.statusCode == 200) {
         final decoded = jsonDecode(response.body);
@@ -115,7 +115,7 @@ class NotificationService {
 
       final response = await http
           .post(uri, headers: headers, body: jsonEncode(body))
-          .timeout(const Duration(seconds: 15));
+          .timeout(const Duration(seconds: 60));
 
       return response.statusCode == 201 || response.statusCode == 200;
     } catch (e) {
@@ -131,7 +131,7 @@ class NotificationService {
 
       final response = await http
           .get(uri, headers: headers)
-          .timeout(const Duration(seconds: 15));
+          .timeout(const Duration(seconds: 60));
 
       if (response.statusCode == 200) {
         final decoded = jsonDecode(response.body);
@@ -157,7 +157,7 @@ class NotificationService {
 
       final response = await http
           .get(uri, headers: headers)
-          .timeout(const Duration(seconds: 15));
+          .timeout(const Duration(seconds: 60));
 
       if (response.statusCode == 200) {
         final decoded = jsonDecode(response.body);

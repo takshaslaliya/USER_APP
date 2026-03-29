@@ -384,18 +384,18 @@ class _LoginScreenState extends State<LoginScreen>
                     Row(
                       children: [
                         Container(
-                          width: 40,
-                          height: 40,
+                          width: 48,
+                          height: 48,
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
                               colors: AppColors.primaryGradient,
                             ),
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(14),
                           ),
                           child: Icon(
                             Icons.currency_rupee_rounded,
                             color: Colors.white,
-                            size: 22,
+                            size: 26,
                           ),
                         ),
                         SizedBox(width: 12),

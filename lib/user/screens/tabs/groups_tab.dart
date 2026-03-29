@@ -43,8 +43,8 @@ class _GroupsTabState extends State<GroupsTab>
       }
     });
 
-    // Start polling every 15 seconds
-    _refreshTimer = Timer.periodic(const Duration(seconds: 15), (timer) {
+    // Start polling every 20 seconds
+    _refreshTimer = Timer.periodic(const Duration(seconds: 20), (timer) {
       if (mounted) {
         _refreshAll(isPolling: true);
       }
@@ -299,7 +299,10 @@ class _GroupsTabState extends State<GroupsTab>
                     onTap: () => Navigator.pushNamed(
                       context,
                       '/details',
-                      arguments: group,
+                      arguments: {
+                        'group': group,
+                        'heroTag': 'groups_tab_avatar_${group.id}',
+                      },
                     ).then((_) => onRefresh()),
                     borderRadius: BorderRadius.circular(20),
                     child: Container(
@@ -318,7 +321,7 @@ class _GroupsTabState extends State<GroupsTab>
                       child: Row(
                         children: [
                           Hero(
-                            tag: 'group_avatar_${group.id}',
+                            tag: 'groups_tab_avatar_${group.id}',
                             child: _buildGroupAvatar(group, isDark),
                           ),
                           const SizedBox(width: 16),
@@ -328,6 +331,8 @@ class _GroupsTabState extends State<GroupsTab>
                               children: [
                                 Text(
                                   group.name,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
                                     color: isDark
                                         ? AppColors.darkText
@@ -377,6 +382,64 @@ class _GroupsTabState extends State<GroupsTab>
                               fontWeight: FontWeight.w700,
                             ),
                           ),
+                          const SizedBox(width: 8),
+                          PopupMenuButton<String>(
+                            icon: Icon(
+                              Icons.more_vert_rounded,
+                              color: isDark ? AppColors.darkSubtext : AppColors.lightSubtext,
+                              size: 20,
+                            ),
+                            onSelected: (value) async {
+                              if (value == 'toggle_stats') {
+                                debugPrint('GroupsTab: Toggling stats for group ${group.id}');
+                                final res = await GroupService.excludeGroupFromStats(
+                                  group.id,
+                                  !group.excludeFromStats,
+                                );
+                                if (res.success) {
+                                  if (mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text(group.excludeFromStats ? 'Group included in stats' : 'Group excluded from stats')),
+                                    );
+                                    await onRefresh();
+                                  }
+                                } else {
+                                  if (mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text('Failed: ${res.message}')),
+                                    );
+                                  }
+                                }
+                              }
+                            },
+                            itemBuilder: (context) => [
+                              PopupMenuItem(
+                                value: 'toggle_stats',
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      group.excludeFromStats
+                                          ? Icons.visibility_rounded
+                                          : Icons.visibility_off_rounded,
+                                      size: 18,
+                                      color: AppColors.primary,
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Text(
+                                      group.excludeFromStats
+                                          ? 'Show in Stats'
+                                          : 'Exclude from Stats',
+                                      style: const TextStyle(fontSize: 13),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                            color: isDark ? AppColors.darkSurface : Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -392,6 +455,7 @@ class _GroupsTabState extends State<GroupsTab>
     return Container(
       width: 50,
       height: 50,
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkBg : AppColors.lightBg,
         borderRadius: BorderRadius.circular(14),
@@ -403,13 +467,23 @@ class _GroupsTabState extends State<GroupsTab>
             : null,
       ),
       child: photo == null
-          ? Center(
-              child: Text(
-                group.name.substring(0, 1).toUpperCase(),
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primary,
+          ? Material(
+              color: Colors.transparent,
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: FittedBox(
+                    fit: BoxFit.contain,
+                    child: Text(
+                      group.name.trim().isNotEmpty
+                          ? group.name.trim().substring(0, 1).toUpperCase()
+                          : '?',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ),
                 ),
               ),
             )

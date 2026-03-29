@@ -286,6 +286,10 @@ class _PersonalSettlementTabState extends State<PersonalSettlementTab> {
       return;
     }
 
+    final splitSummary = s.details
+        .map((d) => "${d.name}: ₹${d.absAmount.toStringAsFixed(0)}")
+        .join(", ");
+
     final res = await WhatsAppService.sendPayment(
       requests: [
         {
@@ -293,6 +297,7 @@ class _PersonalSettlementTabState extends State<PersonalSettlementTab> {
           'name': s.name,
           'amount': s.toReceive,
           'creditor_phone': myPhone,
+          'split_list': splitSummary,
         },
       ],
       message:
@@ -358,6 +363,13 @@ class _PersonalSettlementTabState extends State<PersonalSettlementTab> {
                   _tokenButton(
                     label: 'Amount',
                     token: '%amount%',
+                    controller: messageController,
+                    context: context,
+                  ),
+                  const SizedBox(width: 8),
+                  _tokenButton(
+                    label: 'Split List',
+                    token: '%split_list%',
                     controller: messageController,
                     context: context,
                   ),
@@ -767,8 +779,8 @@ class _PersonalSettlementTabState extends State<PersonalSettlementTab> {
                         ),
                       ],
 
-                      // Paid button - Only show if they owe us money
-                      if (s.toReceive > 0.01) ...[
+                      // Paid button - Only show if they owe us money overall
+                      if (s.netAmount > 0.01) ...[
                         const SizedBox(width: 8),
                         _buildActionButton(
                           label: 'Paid',

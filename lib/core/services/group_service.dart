@@ -33,8 +33,7 @@ class GroupService {
       headers['X-HTTP-Method-Override'] = method;
       http.Response response;
       final uri = Uri.parse('$_baseUrl$path');
-
-      final timeout = const Duration(seconds: 30);
+      final timeout = const Duration(seconds: 60);
 
       switch (method) {
         case 'GET':
@@ -153,7 +152,7 @@ class GroupService {
               'payments': payments,
             }),
           )
-          .timeout(const Duration(seconds: 15));
+          .timeout(const Duration(seconds: 60));
 
       final decoded = jsonDecode(response.body);
 
@@ -209,7 +208,7 @@ class GroupService {
               if (upiIds != null) 'upi_ids': upiIds,
             }),
           )
-          .timeout(const Duration(seconds: 30));
+          .timeout(const Duration(seconds: 60));
 
       final decoded = jsonDecode(response.body);
 
@@ -243,9 +242,10 @@ class GroupService {
       final uri = Uri.parse('${AppConfig.splitUrl}/$splitId');
       final response = await http
           .get(uri, headers: headers)
-          .timeout(const Duration(seconds: 15));
+          .timeout(const Duration(seconds: 60));
 
       final decoded = jsonDecode(response.body);
+      debugPrint('SPLIT DETAILS API RESPONSE: ${response.body}');
       return GroupResult(
         success: decoded['success'] == true,
         message: decoded['message'] ?? '',
@@ -277,7 +277,7 @@ class GroupService {
               if (name != null) 'name': name,
             }),
           )
-          .timeout(const Duration(seconds: 30));
+          .timeout(const Duration(seconds: 60));
 
       final decoded = jsonDecode(response.body);
       return GroupResult(
@@ -298,7 +298,7 @@ class GroupService {
       final uri = Uri.parse('${AppConfig.splitUrl}/$splitId');
       final response = await http
           .delete(uri, headers: headers)
-          .timeout(const Duration(seconds: 15));
+          .timeout(const Duration(seconds: 60));
 
       final decoded = jsonDecode(response.body);
       return GroupResult(
@@ -380,6 +380,11 @@ class GroupService {
     return _request('DELETE', '/$groupId');
   }
 
+  // 6b. Exclude Group from Stats
+  static Future<GroupResult> excludeGroupFromStats(String groupId, bool exclude) async {
+    return _request('PUT', '/$groupId', body: {'exclude_from_stats': exclude});
+  }
+
   // 7. Add Member
   static Future<GroupResult> addMember(
     String groupId,
@@ -444,7 +449,7 @@ class GroupService {
       final uri = Uri.parse(AppConfig.settlementUrl);
       final response = await http
           .get(uri, headers: headers)
-          .timeout(const Duration(seconds: 30));
+          .timeout(const Duration(seconds: 60));
 
       final decoded = jsonDecode(response.body);
       return GroupResult(

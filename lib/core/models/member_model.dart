@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'package:flutter/foundation.dart';
+
 class MemberModel {
   final String id;
   final String name;
@@ -29,18 +32,17 @@ class MemberModel {
     if (name.trim().isNotEmpty) {
       initials = name.trim().substring(0, 1).toUpperCase();
     }
+    debugPrint('MemberModel: Parsing member JSON: ${jsonEncode(json)}');
     return MemberModel(
-      id: json['id'] as String,
+      id: json['id']?.toString() ?? '',
       name: name,
       avatarInitials: initials,
-      amountOwed: 0.0, // Should be computed dynamically per expense
-      isPaid: true, // Default value until expense logic is applied
+      amountOwed: (json['amount_owed'] ?? 0.0).toDouble(), // Compute dynamically
+      isPaid: json['is_paid'] == true || json['is_paid'] == 1, 
       phoneNumber: json['phone_number'] as String?,
       isRegistered: json['is_registered'] == true,
       userId: json['user_id'] as String?,
-      expenseAmount: (json['expense_amount'] ?? 0.0) is int
-          ? (json['expense_amount'] as int).toDouble()
-          : (json['expense_amount'] ?? 0.0).toDouble(),
+      expenseAmount: (json['expense_amount'] ?? 0.0).toDouble(),
       joinedAt: json['joined_at'] != null
           ? DateTime.tryParse(json['joined_at'])
           : null,

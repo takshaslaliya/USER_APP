@@ -1,4 +1,4 @@
-package com.example.splitease_test
+package com.splitease.app
 
 import io.flutter.embedding.android.FlutterActivity
 

@@ -9,6 +9,10 @@ import 'package:splitease_test/core/services/achievement_service.dart';
 import 'package:provider/provider.dart';
 import 'package:splitease_test/core/providers/navigation_provider.dart';
 import 'package:splitease_test/core/services/auth_service.dart';
+import 'package:splitease_test/core/models/monthly_stats_model.dart';
+import 'package:splitease_test/core/services/user_service.dart';
+import 'package:splitease_test/user/screens/monthly_transactions_screen.dart';
+import 'package:intl/intl.dart';
 
 import 'dart:io';
 import 'dart:convert';
@@ -29,6 +33,7 @@ class _DashboardTabState extends State<DashboardTab> {
   bool _isDashboardLoading = true;
   String? _dashboardError;
   List<AchievementModel> _achievements = [];
+  List<MonthlyStats> _monthlyStats = [];
 
   // Groups (for when the dashboard groups list isn't enough)
   List<GroupModel> _groups = [];
@@ -54,8 +59,8 @@ class _DashboardTabState extends State<DashboardTab> {
       }
     });
 
-    // Start polling every 15 seconds
-    _refreshTimer = Timer.periodic(const Duration(seconds: 15), (timer) {
+    // Start polling every 20 seconds
+    _refreshTimer = Timer.periodic(const Duration(seconds: 20), (timer) {
       if (mounted) {
         _refreshData(isPolling: true);
       }
@@ -90,22 +95,25 @@ class _DashboardTabState extends State<DashboardTab> {
     try {
       // Parallel fetch for all dashboard components
       final results = await Future.wait([
-        DashboardService.fetchDashboard(),
-        GroupService.fetchGroups(),
-        AchievementService.fetchAchievements(),
-        AuthService.getProfile(),
+        DashboardService.fetchDashboard().timeout(const Duration(seconds: 60)),
+        GroupService.fetchGroups().timeout(const Duration(seconds: 60)),
+        AchievementService.fetchAchievements().timeout(const Duration(seconds: 60)),
+        AuthService.getProfile().timeout(const Duration(seconds: 60)),
+        UserService.fetchMonthlyStats().timeout(const Duration(seconds: 60)),
       ]);
 
       final dashResult = results[0] as DashboardResult;
       final groupResult = results[1] as GroupResult;
       final achievementsData = results[2] as List<AchievementModel>;
       final profileResult = results[3] as AuthResult;
+      final statsData = results[4] as List<MonthlyStats>;
 
       if (!mounted) return;
 
       setState(() {
         _isDashboardLoading = false;
         _achievements = achievementsData;
+        _monthlyStats = statsData;
 
         if (dashResult.success && dashResult.data != null) {
           _dashboardData = dashResult.data;
@@ -304,11 +312,11 @@ class _DashboardTabState extends State<DashboardTab> {
                                     : null,
                               ),
                             ),
-                            const SizedBox(width: 12),
+                            const SizedBox(width: 4),
                             Image.asset(
                               'assets/images/App_Logo.png',
-                              width: 30,
-                              height: 30,
+                              width: 50,
+                              height: 50,
                               fit: BoxFit.contain,
                             ),
                           ],
@@ -457,6 +465,91 @@ class _DashboardTabState extends State<DashboardTab> {
 
                   const SizedBox(height: 24),
 
+                  // ── Action Row: Add & View Personal Expenses ────────
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 28),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          flex: 3,
+                          child: InkWell(
+                            onTap: _showAddPersonalExpenseDialog,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    AppColors.primary,
+                                    AppColors.primaryLight,
+                                  ],
+                                ),
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppColors.primary.withOpacity(0.2),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.add_rounded, color: Colors.white, size: 20),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    'Add Expense',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          flex: 2,
+                          child: InkWell(
+                            onTap: () => Navigator.pushNamed(context, '/personal-expenses').then((_) => _refreshData()),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              decoration: BoxDecoration(
+                                color: isDark ? AppColors.darkSurface : Colors.white,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: isDark ? AppColors.darkSurfaceVariant : AppColors.lightSurfaceVariant,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.history_rounded, 
+                                    color: isDark ? AppColors.darkText : AppColors.primary, 
+                                    size: 18),
+                                  SizedBox(width: 6),
+                                  Text(
+                                    'History',
+                                    style: TextStyle(
+                                      color: isDark ? AppColors.darkText : AppColors.primary,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+
                   // ── Search Bar ───────────────────────────────
                   Padding(
                     padding: EdgeInsets.symmetric(horizontal: 28),
@@ -521,12 +614,12 @@ class _DashboardTabState extends State<DashboardTab> {
                       child: Row(
                         children: [
                           _StatBox(
-                            label: 'Total Splits',
+                            label: 'Personal Expenses',
                             value:
                                 '${_dashboardData?.user['total_splits'] ?? 0}',
                             icon: Icons.receipt_long_rounded,
                             isDark: isDark,
-                            onTap: _refreshData,
+                            onTap: () => Navigator.pushNamed(context, '/personal-expenses').then((_) => _refreshData()),
                           ),
                           const SizedBox(width: 16),
                           _StatBox(
@@ -633,6 +726,143 @@ class _DashboardTabState extends State<DashboardTab> {
                     const SizedBox(height: 32),
                   ],
 
+                  // ── Monthly Statistics ───────────────────────
+                  if (_searchQuery.isEmpty && _monthlyStats.isNotEmpty) ...[
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 28),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Monthly Statistics',
+                            style: TextStyle(
+                              color: isDark ? AppColors.darkText : Color(0xFF1D3A44),
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          const Spacer(),
+                          IconButton(
+                            icon: Icon(Icons.calendar_month_rounded, color: AppColors.primary, size: 20),
+                            onPressed: () async {
+                              final DateTime? picked = await showDatePicker(
+                                context: context,
+                                initialDate: DateTime.now(),
+                                firstDate: DateTime(2020),
+                                lastDate: DateTime(2030),
+                                initialDatePickerMode: DatePickerMode.year,
+                              );
+                              if (picked != null && mounted) {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => MonthlyTransactionsScreen(
+                                      month: DateFormat('yyyy-MM').format(picked),
+                                      monthName: DateFormat('MMMM').format(picked),
+                                    ),
+                                  ),
+                                );
+                              }
+                            },
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      height: 140, // Match Achievements height roughly
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.symmetric(horizontal: 28),
+                        itemCount: _monthlyStats.length,
+                        itemBuilder: (context, index) {
+                          final stat = _monthlyStats[index];
+                          final isNegative = stat.net < 0;
+                          return InkWell(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => MonthlyTransactionsScreen(
+                                    month: stat.month,
+                                    monthName: stat.monthName,
+                                  ),
+                                ),
+                              );
+                            },
+                            borderRadius: BorderRadius.circular(20),
+                            child: Container(
+                              width: 160,
+                              margin: const EdgeInsets.only(right: 12),
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: isDark ? AppColors.darkSurface : Colors.white,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: isDark ? AppColors.darkSurfaceVariant : Colors.transparent,
+                                  width: isDark ? 1 : 0,
+                                ),
+                                boxShadow: [
+                                  if (!isDark)
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.03),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                ],
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    stat.monthName,
+                                    style: TextStyle(
+                                      color: isDark ? AppColors.darkSubtext : Color(0xFF5E7A81),
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Row(
+                                    children: [
+                                      Text(
+                                        '₹${stat.net.abs().toStringAsFixed(0)}',
+                                        style: TextStyle(
+                                          color: isDark ? AppColors.darkText : Color(0xFF1D3A44),
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Icon(
+                                        isNegative ? Icons.arrow_downward : Icons.arrow_upward,
+                                        size: 16,
+                                        color: isNegative ? AppColors.error : Color(0xFF2ECC71),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    isNegative ? 'Net Spent' : 'Net Plus',
+                                    style: TextStyle(
+                                      color: isNegative ? AppColors.error : Color(0xFF2ECC71),
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                  ],
+
                   // ── Activity Header ──────────────────────────
                   Padding(
                     padding: EdgeInsets.symmetric(horizontal: 24),
@@ -712,7 +942,11 @@ class _DashboardTabState extends State<DashboardTab> {
                                           onTap: () => Navigator.pushNamed(
                                             context,
                                             '/details',
-                                            arguments: group,
+                                            arguments: {
+                                              'group': group,
+                                              'heroTag':
+                                                  'dashboard_tab_avatar_${group.id}',
+                                            },
                                           ).then((_) => _refreshData()),
                                           child: _buildGroupTile(
                                             title: group.name,
@@ -723,6 +957,7 @@ class _DashboardTabState extends State<DashboardTab> {
                                                 '₹${group.displayTotal.toInt()}',
                                             isDark: isDark,
                                             imageUrl: group.bestPhoto,
+                                            groupId: group.id,
                                           ),
                                         ),
                                       )
@@ -754,7 +989,11 @@ class _DashboardTabState extends State<DashboardTab> {
                                 onTap: () => Navigator.pushNamed(
                                   context,
                                   '/details',
-                                  arguments: localGroup,
+                                  arguments: {
+                                    'group': localGroup,
+                                    'heroTag':
+                                        'dashboard_tab_avatar_${localGroup.id}',
+                                  },
                                 ).then((_) => _refreshData()),
                                 child: _buildGroupTile(
                                   title: name,
@@ -766,6 +1005,7 @@ class _DashboardTabState extends State<DashboardTab> {
                                       : '–',
                                   isDark: isDark,
                                   imageUrl: localGroup.bestPhoto,
+                                  groupId: groupId,
                                 ),
                               );
                             }).toList(),
@@ -848,20 +1088,24 @@ class _DashboardTabState extends State<DashboardTab> {
         SizedBox(height: 24),
         Row(
           children: [
-            _balanceStat(
-              Icons.arrow_upward_rounded,
-              'You Owe',
-              '₹${moneyToSend.toInt()}',
-              Color(0xFFE56A6A),
+            Expanded(
+              child: _balanceStat(
+                Icons.arrow_upward_rounded,
+                'You Owe',
+                '₹${moneyToSend.toInt()}',
+                Color(0xFFE56A6A),
+              ),
             ),
-            SizedBox(width: 32),
+            SizedBox(width: 16),
             Container(width: 1, height: 30, color: Colors.white24),
-            SizedBox(width: 32),
-            _balanceStat(
-              Icons.arrow_downward_rounded,
-              'You Get',
-              '₹${moneyToReceive.toInt()}',
-              Color(0xFF45F5E4),
+            SizedBox(width: 16),
+            Expanded(
+              child: _balanceStat(
+                Icons.arrow_downward_rounded,
+                'You Get',
+                '₹${moneyToReceive.toInt()}',
+                Color(0xFF45F5E4),
+              ),
             ),
           ],
         ),
@@ -909,6 +1153,7 @@ class _DashboardTabState extends State<DashboardTab> {
     required String amount,
     required bool isDark,
     String? imageUrl,
+    String? groupId,
   }) {
     return Container(
       margin: EdgeInsets.only(bottom: 12),
@@ -931,39 +1176,55 @@ class _DashboardTabState extends State<DashboardTab> {
       ),
       child: Row(
         children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: isDark
-                  ? AppColors.darkSurfaceVariant
-                  : AppColors.primary.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(16),
-              image: imageUrl != null
-                  ? DecorationImage(
-                      image:
-                          () {
-                                if (imageUrl.startsWith('http')) {
-                                  return NetworkImage(imageUrl);
-                                } else if (imageUrl.startsWith('data:')) {
-                                  final base64Str = imageUrl.split(',').last;
-                                  return MemoryImage(base64Decode(base64Str));
-                                } else {
-                                  return FileImage(File(imageUrl));
-                                }
-                              }()
-                              as ImageProvider,
-                      fit: BoxFit.cover,
+          Hero(
+            tag: 'dashboard_tab_avatar_${groupId}',
+            child: Container(
+              width: 48,
+              height: 48,
+              clipBehavior: Clip.antiAlias,
+              decoration: BoxDecoration(
+                color: isDark
+                    ? AppColors.darkSurfaceVariant
+                    : AppColors.primary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(16),
+                image: imageUrl != null && imageUrl.isNotEmpty
+                    ? DecorationImage(
+                        image:
+                            () {
+                                  if (imageUrl.startsWith('http')) {
+                                    return NetworkImage(imageUrl);
+                                  } else if (imageUrl.startsWith('data:')) {
+                                    final base64Str = imageUrl.split(',').last;
+                                    return MemoryImage(base64Decode(base64Str));
+                                  } else {
+                                    return FileImage(File(imageUrl));
+                                  }
+                                }()
+                                as ImageProvider,
+                        fit: BoxFit.cover,
+                      )
+                    : null,
+              ),
+              child: (imageUrl == null || imageUrl.isEmpty)
+                  ? Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: FittedBox(
+                          fit: BoxFit.contain,
+                          child: Text(
+                            title.trim().isNotEmpty
+                                ? title.trim().substring(0, 1).toUpperCase()
+                                : '?',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        ),
+                      ),
                     )
                   : null,
             ),
-            child: imageUrl == null
-                ? Icon(
-                    Icons.receipt_long_rounded,
-                    color: AppColors.primary,
-                    size: 24,
-                  )
-                : null,
           ),
           SizedBox(width: 14),
           Expanded(
@@ -972,6 +1233,8 @@ class _DashboardTabState extends State<DashboardTab> {
               children: [
                 Text(
                   title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: isDark ? AppColors.darkText : Color(0xFF1D3A44),
                     fontSize: 16,
@@ -1185,6 +1448,151 @@ class _DashboardTabState extends State<DashboardTab> {
       default:
         return _AchievementUIConfig(Icons.star_rounded, Colors.purple);
     }
+  }
+
+  void _showAddPersonalExpenseDialog() {
+    final nameCtrl = TextEditingController();
+    final amountCtrl = TextEditingController();
+    final categoryCtrl = TextEditingController();
+    final descCtrl = TextEditingController();
+    bool isIncome = false;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
+              title: Text('Add Personal Expense',
+                  style: TextStyle(
+                      color: isDark ? AppColors.darkText : Color(0xFF1D3A44))),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: nameCtrl,
+                      decoration: InputDecoration(
+                        labelText: 'Expense Name',
+                        hintText: 'e.g. Coffee, Lunch',
+                        labelStyle: TextStyle(
+                            color: isDark
+                                ? AppColors.darkSubtext
+                                : Color(0xFF5E7A81)),
+                      ),
+                      style: TextStyle(
+                          color: isDark ? AppColors.darkText : Color(0xFF1D3A44)),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: amountCtrl,
+                      keyboardType:
+                          TextInputType.numberWithOptions(decimal: true),
+                      decoration: InputDecoration(
+                        labelText: 'Amount (₹)',
+                        labelStyle: TextStyle(
+                            color: isDark
+                                ? AppColors.darkSubtext
+                                : Color(0xFF5E7A81)),
+                      ),
+                      style: TextStyle(
+                          color: isDark ? AppColors.darkText : Color(0xFF1D3A44)),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: categoryCtrl,
+                      decoration: InputDecoration(
+                        labelText: 'Category',
+                        hintText: 'e.g. Food, Travel, Salary',
+                        labelStyle: TextStyle(
+                            color: isDark
+                                ? AppColors.darkSubtext
+                                : Color(0xFF5E7A81)),
+                      ),
+                      style: TextStyle(
+                          color: isDark ? AppColors.darkText : Color(0xFF1D3A44)),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: descCtrl,
+                      decoration: InputDecoration(
+                        labelText: 'Description (Optional)',
+                        labelStyle: TextStyle(
+                            color: isDark
+                                ? AppColors.darkSubtext
+                                : Color(0xFF5E7A81)),
+                      ),
+                      style: TextStyle(
+                          color: isDark ? AppColors.darkText : Color(0xFF1D3A44)),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Checkbox(
+                          value: isIncome,
+                          onChanged: (val) {
+                            setDialogState(() => isIncome = val ?? false);
+                          },
+                          activeColor: AppColors.primary,
+                        ),
+                        Text('This is Income',
+                            style: TextStyle(
+                                color: isDark
+                                    ? AppColors.darkText
+                                    : Color(0xFF1D3A44))),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text('Cancel',
+                      style: TextStyle(
+                          color: isDark
+                              ? AppColors.darkSubtext
+                              : Color(0xFF5E7A81))),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    if (nameCtrl.text.isEmpty || amountCtrl.text.isEmpty) return;
+                    double amount = double.tryParse(amountCtrl.text) ?? 0.0;
+
+                    final result = await UserService.addPersonalExpense(
+                      name: nameCtrl.text,
+                      amount: amount,
+                      type: isIncome ? 'Income' : 'Spent',
+                      category: categoryCtrl.text.isEmpty
+                          ? (isIncome ? 'Income' : 'Other')
+                          : categoryCtrl.text,
+                      description: descCtrl.text.isEmpty ? null : descCtrl.text,
+                    );
+
+                    if (mounted) {
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(result.message),
+                          backgroundColor:
+                              result.success ? AppColors.primary : AppColors.error,
+                        ),
+                      );
+                      if (result.success) _refreshData();
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary),
+                  child: const Text('Add', style: TextStyle(color: Colors.white)),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 }
 

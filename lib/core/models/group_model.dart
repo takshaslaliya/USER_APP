@@ -1,6 +1,8 @@
 import 'package:splitease_test/core/models/member_model.dart';
 import 'package:splitease_test/core/models/message_model.dart';
 import 'package:splitease_test/core/models/expense_model.dart';
+import 'dart:convert';
+import 'package:flutter/foundation.dart';
 
 class GroupModel {
   final String id;
@@ -22,6 +24,7 @@ class GroupModel {
   final double totalSubExpense;
   final String splitType;
   final bool isShared;
+  final bool excludeFromStats;
 
   GroupModel({
     required this.id,
@@ -43,9 +46,11 @@ class GroupModel {
     this.totalSubExpense = 0.0,
     this.splitType = 'solo',
     this.isShared = false,
+    this.excludeFromStats = false,
   });
 
   factory GroupModel.fromJson(Map<String, dynamic> json) {
+    debugPrint('GroupModel: Parsing Group JSON: ${jsonEncode(json)}');
     List<MemberModel> parsedMembers = [];
     if (json['members'] != null && json['members'] is List) {
       parsedMembers = (json['members'] as List)
@@ -141,6 +146,7 @@ class GroupModel {
       totalSubExpense: (json['total_sub_expense'] ?? 0.0).toDouble(),
       isShared:
           (json['group_type'] == 'shared') || (json['is_shared'] ?? false),
+      excludeFromStats: json['exclude_from_stats'] ?? false,
     );
   }
 

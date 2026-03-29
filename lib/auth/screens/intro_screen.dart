@@ -148,7 +148,7 @@ class _IntroScreenState extends State<IntroScreen>
       children: [
         Image.asset(
           'assets/images/Full_Logo_With_Name.png',
-          width: 320,
+          width: 360,
           fit: BoxFit.contain,
         ),
       ],

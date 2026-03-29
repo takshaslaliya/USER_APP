@@ -243,7 +243,7 @@ class _ExpenseDetailsScreenState extends State<ExpenseDetailsScreen> {
               id: firstPayer,
               name: _phoneToNameCache[firstPayer] ?? firstPayer,
               amount: payerShare > 0 ? payerShare : 0,
-              isPaid: true,
+              isPaid: false, // Default to false if not found in transactions
               phoneNumber:
                   firstPayer.replaceAll(RegExp(r'[^0-9]'), '').length >= 10
                   ? firstPayer
@@ -263,7 +263,7 @@ class _ExpenseDetailsScreenState extends State<ExpenseDetailsScreen> {
             amount: (splits[payerIdx].amount == 0 && payerShare > 0)
                 ? payerShare
                 : splits[payerIdx].amount,
-            isPaid: true,
+            isPaid: splits[payerIdx].isPaid, // Trust the API value
             toId: splits[payerIdx].toId,
             toName: splits[payerIdx].toName,
             phoneNumber:
@@ -304,9 +304,7 @@ class _ExpenseDetailsScreenState extends State<ExpenseDetailsScreen> {
       if (sg['members'].isNotEmpty && sg['members'].first is Map) {
         splits = (sg['members'] as List).map((m) {
           final amt = (m['expense_amount'] ?? 0.0).toDouble();
-          final isPayer =
-              m['is_paid'] == true ||
-              amt == 0; // Heuristic for payer if not explicitly marked
+          final isPayer = m['is_paid'] == true || m['is_paid'] == 1;
 
           return MemberSplit(
             id:
